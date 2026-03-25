@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
 function parseUserAgent(ua: string) {
   let device = "desktop";
   let browser = "other";
@@ -35,6 +30,11 @@ export async function GET(
 ) {
   const { shortcode } = await params;
 
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
   const { data: qr, error } = await supabase
     .from("qr_codes")
     .select("id, destination_url, qr_type")
@@ -45,12 +45,11 @@ export async function GET(
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  // Log scan for dynamic QR codes (fire-and-forget)
+  // Log scan for dynamic QR codes — MUST await before redirect
   if (qr.qr_type === "dynamic") {
     const ua = request.headers.get("user-agent") || "";
     const { device, browser, os } = parseUserAgent(ua);
 
-    // Cloudflare geo headers (available when proxied)
     const country =
       request.headers.get("cf-ipcountry") ||
       request.headers.get("x-vercel-ip-country") ||
@@ -61,8 +60,7 @@ export async function GET(
       null;
     const referrer = request.headers.get("referer") || null;
 
-    // Don't await — fire and forget for speed
-    supabase.from("scans").insert({
+    await supabase.from("scans").insert({
       qr_code_id: qr.id,
       country,
       city,

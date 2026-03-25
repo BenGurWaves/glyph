@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { generateQRDataURL } from "@/lib/qr";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 
 const DAILY_LIMIT = 20;
 const STORAGE_KEY = "glyph_daily_gen";
+const AUTO_SAVE_DELAY = 3000;
 
 function getDailyUsage(): { count: number; date: string } {
   if (typeof window === "undefined") return { count: 0, date: "" };
@@ -39,17 +40,26 @@ export function QRGenerator() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isPro, setIsPro] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<string | null>(null);
+
+  // Pro features
+  const [fgColor, setFgColor] = useState("#1A1A1A");
+  const [bgColor, setBgColor] = useState("#FFFFFF");
+  const [showProControls, setShowProControls] = useState(false);
+
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSavedUrl = useRef<string>("");
+  const userId = useRef<string | null>(null);
 
   useEffect(() => {
     const usage = getDailyUsage();
     setRemaining(DAILY_LIMIT - usage.count);
     setLimitReached(usage.count >= DAILY_LIMIT);
 
-    // Check auth state and Pro status
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       setIsLoggedIn(!!user);
       if (user) {
-        // Check subscription
+        userId.current = user.id;
         const { data: sub } = await supabase
           .from("subscriptions")
           .select("plan, status")
@@ -60,9 +70,7 @@ export function QRGenerator() {
         if (sub && sub.plan === "pro") {
           setIsPro(true);
           setLimitReached(false);
-          setRemaining(DAILY_LIMIT); // doesn't matter, unlimited
         } else {
-          // Check if they have a coupon activation pending
           const { data: couponData } = await supabase
             .from("coupon_activations")
             .select("email")
@@ -70,14 +78,8 @@ export function QRGenerator() {
             .single();
 
           if (couponData) {
-            // Activate Pro for this user
             await supabase.from("subscriptions").upsert(
-              {
-                user_id: user.id,
-                plan: "pro",
-                payment_method: "coupon",
-                status: "active",
-              },
+              { user_id: user.id, plan: "pro", payment_method: "coupon", status: "active" },
               { onConflict: "user_id" }
             );
             setIsPro(true);
@@ -88,13 +90,41 @@ export function QRGenerator() {
     });
   }, []);
 
+  // Auto-save for Pro users after 3 seconds of inactivity
+  const autoSave = useCallback(async (destUrl: string) => {
+    if (!userId.current || !isPro || !destUrl.trim()) return;
+    if (destUrl === lastSavedUrl.current) return;
+
+    const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+    let shortCode = "";
+    for (let i = 0; i < 7; i++) shortCode += chars[Math.floor(Math.random() * chars.length)];
+
+    let title = destUrl;
+    try { title = new URL(destUrl).hostname; } catch { /* use full url */ }
+
+    const { error } = await supabase.from("qr_codes").insert({
+      user_id: userId.current,
+      short_code: shortCode,
+      destination_url: destUrl,
+      title,
+      qr_type: "dynamic",
+      style_config: { fgColor, bgColor },
+    });
+
+    if (!error) {
+      lastSavedUrl.current = destUrl;
+      setAutoSaveStatus("auto-saved to dashboard");
+      setSaved(true);
+      setTimeout(() => setAutoSaveStatus(null), 3000);
+    }
+  }, [isPro, fgColor, bgColor]);
+
   const generate = useCallback(async (text: string) => {
     if (!text.trim()) {
       setQrDataUrl(null);
       return;
     }
 
-    // Pro users skip the daily limit
     if (!isPro) {
       const usage = getDailyUsage();
       if (usage.count >= DAILY_LIMIT) {
@@ -105,32 +135,50 @@ export function QRGenerator() {
 
     setIsGenerating(true);
     setSaved(false);
+    setAutoSaveStatus(null);
     try {
       const dataUrl = await generateQRDataURL(text, {
         width: 300,
         margin: 2,
-        color: { dark: "#1A1A1A", light: "#FFFFFF" },
-        errorCorrectionLevel: "M",
+        color: { dark: fgColor, light: bgColor },
+        errorCorrectionLevel: isPro ? "H" : "M",
       });
       setQrDataUrl(dataUrl);
       if (!isPro) {
         incrementUsage();
         setRemaining(DAILY_LIMIT - getDailyUsage().count);
       }
+
+      // Start auto-save timer for Pro users
+      if (isPro && userId.current) {
+        if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+        autoSaveTimer.current = setTimeout(() => autoSave(text), AUTO_SAVE_DELAY);
+      }
     } catch {
       setQrDataUrl(null);
     } finally {
       setIsGenerating(false);
     }
-  }, [isPro]);
+  }, [isPro, fgColor, bgColor, autoSave]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       if (url.trim() && !limitReached) generate(url);
-      else if (!url.trim()) setQrDataUrl(null);
+      else if (!url.trim()) {
+        setQrDataUrl(null);
+        setSaved(false);
+        setAutoSaveStatus(null);
+      }
     }, 300);
     return () => clearTimeout(timer);
   }, [url, generate, limitReached]);
+
+  useEffect(() => {
+    // Re-generate when colors change (Pro only)
+    if (isPro && url.trim() && qrDataUrl) {
+      generate(url);
+    }
+  }, [fgColor, bgColor]);
 
   const download = () => {
     if (!qrDataUrl) return;
@@ -138,32 +186,6 @@ export function QRGenerator() {
     a.href = qrDataUrl;
     a.download = `glyph-qr-${Date.now()}.png`;
     a.click();
-  };
-
-  const saveToAccount = async () => {
-    if (!url.trim()) return;
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    // Generate a short code for the QR
-    const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-    let shortCode = "";
-    for (let i = 0; i < 7; i++) shortCode += chars[Math.floor(Math.random() * chars.length)];
-
-    let title = url;
-    try { title = new URL(url).hostname; } catch { /* use full url */ }
-
-    const { error } = await supabase.from("qr_codes").insert({
-      user_id: user.id,
-      short_code: shortCode,
-      destination_url: url,
-      title,
-      qr_type: isPro ? "dynamic" : "static",
-    });
-
-    if (!error) {
-      setSaved(true);
-    }
   };
 
   return (
@@ -196,6 +218,75 @@ export function QRGenerator() {
             </button>
           </div>
         </div>
+
+        {/* Pro Color Controls */}
+        {isPro && qrDataUrl && (
+          <div className="animate-in">
+            <button
+              onClick={() => setShowProControls(!showProControls)}
+              className="text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] lowercase transition-colors flex items-center gap-2"
+            >
+              <span className="led led-active" />
+              {showProControls ? "hide pro controls" : "customize colors"}
+            </button>
+
+            {showProControls && (
+              <div className="mt-4 flex flex-col gap-4 module-recessed p-4 animate-in">
+                <div className="flex gap-6">
+                  <div className="flex flex-col gap-1.5">
+                    <span className="label">code color</span>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={fgColor}
+                        onChange={(e) => setFgColor(e.target.value)}
+                        className="w-8 h-8 rounded cursor-pointer border border-[var(--border)]"
+                        style={{ padding: 0 }}
+                      />
+                      <span className="font-mono text-[11px] text-[var(--text-secondary)]">{fgColor}</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <span className="label">background</span>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={bgColor}
+                        onChange={(e) => setBgColor(e.target.value)}
+                        className="w-8 h-8 rounded cursor-pointer border border-[var(--border)]"
+                        style={{ padding: 0 }}
+                      />
+                      <span className="font-mono text-[11px] text-[var(--text-secondary)]">{bgColor}</span>
+                    </div>
+                  </div>
+                </div>
+                {/* Quick presets */}
+                <div className="flex gap-2">
+                  {[
+                    { fg: "#1A1A1A", bg: "#FFFFFF", name: "classic" },
+                    { fg: "#1A1A1A", bg: "#F5F0EB", name: "warm" },
+                    { fg: "#E8652B", bg: "#FFFFFF", name: "accent" },
+                    { fg: "#FFFFFF", bg: "#1A1A1A", name: "inverted" },
+                    { fg: "#023020", bg: "#F5F0EB", name: "forest" },
+                  ].map((preset) => (
+                    <button
+                      key={preset.name}
+                      onClick={() => { setFgColor(preset.fg); setBgColor(preset.bg); }}
+                      className="keycap keycap-light keycap-sm"
+                      title={preset.name}
+                    >
+                      <span
+                        className="w-3 h-3 rounded-sm mr-1.5 border border-[var(--border)]"
+                        style={{ background: preset.fg, display: "inline-block" }}
+                      />
+                      {preset.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Limit reached */}
         {limitReached && (
@@ -242,6 +333,14 @@ export function QRGenerator() {
           </div>
         </div>
 
+        {/* Auto-save status */}
+        {autoSaveStatus && (
+          <div className="flex items-center justify-center gap-2 animate-in">
+            <span className="led led-active" />
+            <span className="text-[11px] text-[var(--text-secondary)] lowercase">{autoSaveStatus}</span>
+          </div>
+        )}
+
         {/* Actions */}
         {qrDataUrl && (
           <div className="flex justify-center gap-3 animate-in">
@@ -253,19 +352,8 @@ export function QRGenerator() {
               </svg>
               download
             </button>
-            {isLoggedIn ? (
-              <button
-                onClick={saveToAccount}
-                disabled={saved}
-                className={`keycap keycap-light keycap-md ${saved ? "opacity-60" : ""}`}
-              >
-                {saved ? "saved" : "save to account"}
-              </button>
-            ) : (
-              <Link
-                href="/login"
-                className="keycap keycap-light keycap-md no-underline"
-              >
+            {!isLoggedIn && (
+              <Link href="/login" className="keycap keycap-light keycap-md no-underline">
                 sign in to save
               </Link>
             )}
@@ -274,9 +362,11 @@ export function QRGenerator() {
 
         {/* Note */}
         <p className="text-center text-[12px] text-[var(--text-tertiary)] lowercase tracking-wide">
-          {limitReached
-            ? "pro users get unlimited generations."
-            : "instant. no signup. no email."}
+          {isPro
+            ? "pro — auto-saves to your dashboard."
+            : limitReached
+              ? "pro users get unlimited generations."
+              : "instant. no signup. no email."}
         </p>
       </div>
     </div>
