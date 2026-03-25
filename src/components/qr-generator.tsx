@@ -37,6 +37,7 @@ export function QRGenerator() {
   const [remaining, setRemaining] = useState(DAILY_LIMIT);
   const [limitReached, setLimitReached] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isPro, setIsPro] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -44,9 +45,46 @@ export function QRGenerator() {
     setRemaining(DAILY_LIMIT - usage.count);
     setLimitReached(usage.count >= DAILY_LIMIT);
 
-    // Check auth state
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    // Check auth state and Pro status
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
       setIsLoggedIn(!!user);
+      if (user) {
+        // Check subscription
+        const { data: sub } = await supabase
+          .from("subscriptions")
+          .select("plan, status")
+          .eq("user_id", user.id)
+          .eq("status", "active")
+          .single();
+
+        if (sub && sub.plan === "pro") {
+          setIsPro(true);
+          setLimitReached(false);
+          setRemaining(DAILY_LIMIT); // doesn't matter, unlimited
+        } else {
+          // Check if they have a coupon activation pending
+          const { data: couponData } = await supabase
+            .from("coupon_activations")
+            .select("email")
+            .eq("email", user.email?.toLowerCase() || "")
+            .single();
+
+          if (couponData) {
+            // Activate Pro for this user
+            await supabase.from("subscriptions").upsert(
+              {
+                user_id: user.id,
+                plan: "pro",
+                payment_method: "coupon",
+                status: "active",
+              },
+              { onConflict: "user_id" }
+            );
+            setIsPro(true);
+            setLimitReached(false);
+          }
+        }
+      }
     });
   }, []);
 
@@ -56,10 +94,13 @@ export function QRGenerator() {
       return;
     }
 
-    const usage = getDailyUsage();
-    if (usage.count >= DAILY_LIMIT) {
-      setLimitReached(true);
-      return;
+    // Pro users skip the daily limit
+    if (!isPro) {
+      const usage = getDailyUsage();
+      if (usage.count >= DAILY_LIMIT) {
+        setLimitReached(true);
+        return;
+      }
     }
 
     setIsGenerating(true);
@@ -72,14 +113,16 @@ export function QRGenerator() {
         errorCorrectionLevel: "M",
       });
       setQrDataUrl(dataUrl);
-      incrementUsage();
-      setRemaining(DAILY_LIMIT - getDailyUsage().count);
+      if (!isPro) {
+        incrementUsage();
+        setRemaining(DAILY_LIMIT - getDailyUsage().count);
+      }
     } catch {
       setQrDataUrl(null);
     } finally {
       setIsGenerating(false);
     }
-  }, []);
+  }, [isPro]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -125,7 +168,7 @@ export function QRGenerator() {
           <div className="flex items-center justify-between">
             <span className="label">destination url</span>
             <span className="text-[10px] font-mono text-[var(--text-tertiary)]">
-              {remaining}/{DAILY_LIMIT} today
+              {isPro ? "pro — unlimited" : `${remaining}/${DAILY_LIMIT} today`}
             </span>
           </div>
           <div className="flex gap-3">

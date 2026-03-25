@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
-const COUPON_CODE = process.env.COUPON_CODE || "bengurwaves28";
+const COUPON_CODE = process.env.COUPON_CODE || "ben28gur28waves28";
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,15 +20,41 @@ export async function POST(request: NextRequest) {
     const isCouponValid = coupon && coupon.toLowerCase() === COUPON_CODE.toLowerCase();
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://glyph.calyvent.com";
 
-    // If coupon is valid, grant free access without Stripe
     if (isCouponValid) {
-      return NextResponse.json({
-        url: `${appUrl}/dashboard?checkout=success&coupon=valid`,
-        free: true,
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+
+      // Store coupon activation by email
+      await supabase.from("coupon_activations").upsert(
+        { email: email.toLowerCase(), coupon_code: coupon },
+        { onConflict: "email" }
+      );
+
+      // If user already exists, activate Pro subscription directly
+      const { data: userData } = await supabase.rpc("get_user_id_by_email", {
+        user_email: email.toLowerCase(),
       });
+
+      if (userData && userData.length > 0) {
+        const userId = userData[0].id;
+        await supabase.from("subscriptions").upsert(
+          {
+            user_id: userId,
+            plan: "pro",
+            payment_method: "coupon",
+            payment_reference: coupon,
+            status: "active",
+          },
+          { onConflict: "user_id" }
+        );
+      }
+
+      return NextResponse.json({ free: true });
     }
 
-    // Use Stripe API directly via fetch (works in Workers, unlike stripe npm package)
+    // Normal Stripe checkout
     const params = new URLSearchParams();
     params.append("customer_email", email);
     params.append("mode", "subscription");
