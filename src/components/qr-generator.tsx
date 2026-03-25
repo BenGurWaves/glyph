@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { generateQRDataURL } from "@/lib/qr";
+import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 
 const DAILY_LIMIT = 20;
@@ -35,11 +36,18 @@ export function QRGenerator() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [remaining, setRemaining] = useState(DAILY_LIMIT);
   const [limitReached, setLimitReached] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     const usage = getDailyUsage();
     setRemaining(DAILY_LIMIT - usage.count);
     setLimitReached(usage.count >= DAILY_LIMIT);
+
+    // Check auth state
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setIsLoggedIn(!!user);
+    });
   }, []);
 
   const generate = useCallback(async (text: string) => {
@@ -55,6 +63,7 @@ export function QRGenerator() {
     }
 
     setIsGenerating(true);
+    setSaved(false);
     try {
       const dataUrl = await generateQRDataURL(text, {
         width: 300,
@@ -86,6 +95,26 @@ export function QRGenerator() {
     a.href = qrDataUrl;
     a.download = `glyph-qr-${Date.now()}.png`;
     a.click();
+  };
+
+  const saveToAccount = async () => {
+    if (!url.trim()) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const res = await fetch("/api/qr", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        destination_url: url,
+        title: new URL(url).hostname,
+        qr_type: "static",
+      }),
+    });
+
+    if (res.ok) {
+      setSaved(true);
+    }
   };
 
   return (
@@ -175,12 +204,22 @@ export function QRGenerator() {
               </svg>
               download
             </button>
-            <Link
-              href="/login"
-              className="keycap keycap-light keycap-md no-underline"
-            >
-              save to account
-            </Link>
+            {isLoggedIn ? (
+              <button
+                onClick={saveToAccount}
+                disabled={saved}
+                className={`keycap keycap-light keycap-md ${saved ? "opacity-60" : ""}`}
+              >
+                {saved ? "saved" : "save to account"}
+              </button>
+            ) : (
+              <Link
+                href="/login"
+                className="keycap keycap-light keycap-md no-underline"
+              >
+                sign in to save
+              </Link>
+            )}
           </div>
         )}
 

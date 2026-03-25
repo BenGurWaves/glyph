@@ -10,6 +10,7 @@ export default function PricingPage() {
   const [coupon, setCoupon] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [couponSuccess, setCouponSuccess] = useState(false);
 
   const handleStripeCheckout = async () => {
     if (!email) {
@@ -26,7 +27,11 @@ export default function PricingPage() {
     });
 
     const data = await res.json();
-    if (data.url) {
+    if (data.free) {
+      // Coupon accepted — show success, no redirect to Stripe
+      setCouponSuccess(true);
+      setLoading(false);
+    } else if (data.url) {
       window.location.href = data.url;
     } else {
       setError(data.error || "Something went wrong.");
@@ -123,6 +128,23 @@ export default function PricingPage() {
                 </ul>
 
                 {/* Checkout form */}
+                {couponSuccess ? (
+                  <div className="flex flex-col gap-4 mt-4 pt-4 border-t border-[#2a2a2a] animate-in">
+                    <div className="flex items-center gap-3">
+                      <span className="led led-active" />
+                      <span className="text-[16px] font-medium">pro activated</span>
+                    </div>
+                    <p className="text-[13px] text-[var(--text-on-dark-secondary)]">
+                      Coupon accepted. Pro features are now active for {email}.
+                    </p>
+                    <Link
+                      href="/login"
+                      className="keycap keycap-accent keycap-lg no-underline text-center"
+                    >
+                      sign in to get started
+                    </Link>
+                  </div>
+                ) : (
                 <div className="flex flex-col gap-3 mt-4 pt-4 border-t border-[#2a2a2a]">
                   <div className="flex flex-col gap-1.5">
                     <span className="label text-[var(--text-on-dark-secondary)]">email</span>
@@ -161,6 +183,7 @@ export default function PricingPage() {
                     powered by stripe. cancel anytime.
                   </p>
                 </div>
+                )}
 
                 {/* Alternative payments */}
                 <div className="flex flex-col gap-3 pt-4 border-t border-[#2a2a2a]">

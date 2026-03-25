@@ -251,8 +251,8 @@ export default function Home() {
           <div className="flex flex-col gap-4 max-w-2xl">
             {[
               {
-                q: "Is the free tier really unlimited?",
-                a: "Yes. Generate and scan as many static QR codes as you want, forever. No email required, no hidden limits.",
+                q: "How many QR codes can I make for free?",
+                a: "20 per day, forever. No email required, no signup wall. If you need more, Pro gives you unlimited for $3/month.",
               },
               {
                 q: "What is a dynamic QR code?",

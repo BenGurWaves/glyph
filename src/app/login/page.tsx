@@ -22,9 +22,20 @@ export default function LoginPage() {
     setLoading(true);
 
     if (isSignUp) {
-      const { error } = await supabase.auth.signUp({ email, password });
-      if (error) setError(error.message);
-      else setMessage("Check your email for a confirmation link.");
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: "https://glyph.calyvent.com/dashboard" },
+      });
+      if (error) {
+        setError(error.message);
+      } else if (data.session) {
+        // Auto-confirmed — go straight to dashboard
+        router.push("/dashboard");
+      } else {
+        // Email confirmation required
+        setMessage("Check your email for a confirmation link.");
+      }
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) setError(error.message);
