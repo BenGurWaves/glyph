@@ -126,7 +126,7 @@ export function QRGenerator() {
       destination_url: normalizedUrl,
       title,
       qr_type: "dynamic",
-      style_config: { fgColor, bgColor },
+      style_config: { fgColor, bgColor, ...(logoDataUrl ? { logo: logoDataUrl } : {}) },
     });
 
     if (!error) {
