@@ -1,0 +1,13 @@
+{
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/api/qr/route": "/api/qr",
+  "/dashboard/[id]/page": "/dashboard/[id]",
+  "/dashboard/page": "/dashboard",
+  "/favicon.ico/route": "/favicon.ico",
+  "/g/[shortcode]/route": "/g/[shortcode]",
+  "/login/page": "/login",
+  "/page": "/",
+  "/pricing/page": "/pricing",
+  "/scan/page": "/scan"
+}

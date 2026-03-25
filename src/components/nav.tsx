@@ -9,6 +9,7 @@ export function Nav() {
   const links = [
     { href: "/scan", label: "scan" },
     { href: "/pricing", label: "pricing" },
+    { href: "/dashboard", label: "dashboard" },
   ];
 
   return (
