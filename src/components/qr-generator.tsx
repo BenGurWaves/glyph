@@ -145,17 +145,23 @@ export function QRGenerator() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const res = await fetch("/api/qr", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        destination_url: url,
-        title: new URL(url).hostname,
-        qr_type: "static",
-      }),
+    // Generate a short code for the QR
+    const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+    let shortCode = "";
+    for (let i = 0; i < 7; i++) shortCode += chars[Math.floor(Math.random() * chars.length)];
+
+    let title = url;
+    try { title = new URL(url).hostname; } catch { /* use full url */ }
+
+    const { error } = await supabase.from("qr_codes").insert({
+      user_id: user.id,
+      short_code: shortCode,
+      destination_url: url,
+      title,
+      qr_type: isPro ? "dynamic" : "static",
     });
 
-    if (res.ok) {
+    if (!error) {
       setSaved(true);
     }
   };

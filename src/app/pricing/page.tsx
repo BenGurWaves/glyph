@@ -3,7 +3,8 @@
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 
 export default function PricingPage() {
   const [email, setEmail] = useState("");
@@ -11,6 +12,24 @@ export default function PricingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [couponSuccess, setCouponSuccess] = useState(false);
+  const [currentPlan, setCurrentPlan] = useState<"free" | "pro" | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (user) {
+        setUserEmail(user.email || null);
+        setEmail(user.email || "");
+        const { data: sub } = await supabase
+          .from("subscriptions")
+          .select("plan, status")
+          .eq("user_id", user.id)
+          .eq("status", "active")
+          .single();
+        setCurrentPlan(sub?.plan === "pro" ? "pro" : "free");
+      }
+    });
+  }, []);
 
   const handleStripeCheckout = async () => {
     if (!email) {
@@ -95,11 +114,17 @@ export default function PricingPage() {
               </div>
 
               {/* Pro */}
-              <div className="module-dark p-8 flex flex-col gap-5 text-[var(--text-on-dark)]">
+              <div className="module-dark p-8 flex flex-col gap-5 text-[var(--text-on-dark)] relative">
+                {currentPlan === "pro" && (
+                  <div className="absolute top-4 right-4 flex items-center gap-2">
+                    <span className="led led-active" />
+                    <span className="text-[11px] font-medium text-[var(--accent)]">current plan</span>
+                  </div>
+                )}
                 <div>
                   <span className="text-[22px] font-medium lowercase">pro</span>
                   <p className="text-[13px] text-[var(--text-on-dark-secondary)] mt-1">
-                    everything you need.
+                    {currentPlan === "pro" ? `active — ${userEmail}` : "everything you need."}
                   </p>
                 </div>
                 <div className="text-[32px] font-medium">
@@ -128,7 +153,20 @@ export default function PricingPage() {
                 </ul>
 
                 {/* Checkout form */}
-                {couponSuccess ? (
+                {currentPlan === "pro" ? (
+                  <div className="flex flex-col gap-3 mt-4 pt-4 border-t border-[#2a2a2a]">
+                    <div className="flex items-center gap-3">
+                      <span className="led led-active" />
+                      <span className="text-[14px] font-medium">you are on pro</span>
+                    </div>
+                    <p className="text-[12px] text-[var(--text-on-dark-secondary)]">
+                      billed monthly. manage your account in the dashboard.
+                    </p>
+                    <Link href="/dashboard" className="keycap keycap-accent keycap-lg no-underline text-center">
+                      go to dashboard
+                    </Link>
+                  </div>
+                ) : couponSuccess ? (
                   <div className="flex flex-col gap-4 mt-4 pt-4 border-t border-[#2a2a2a] animate-in">
                     <div className="flex items-center gap-3">
                       <span className="led led-active" />
