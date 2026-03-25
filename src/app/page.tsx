@@ -168,7 +168,7 @@ export default function Home() {
               <ul className="flex flex-col gap-2 text-[13px] text-[var(--text-secondary)]">
                 <li className="flex items-center gap-2">
                   <span className="led led-active" />
-                  unlimited qr generation
+                  20 qr generations per day
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="led led-active" />

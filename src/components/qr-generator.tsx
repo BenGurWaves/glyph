@@ -2,17 +2,58 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { generateQRDataURL } from "@/lib/qr";
+import Link from "next/link";
+
+const DAILY_LIMIT = 20;
+const STORAGE_KEY = "glyph_daily_gen";
+
+function getDailyUsage(): { count: number; date: string } {
+  if (typeof window === "undefined") return { count: 0, date: "" };
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return { count: 0, date: new Date().toDateString() };
+    const parsed = JSON.parse(raw);
+    if (parsed.date !== new Date().toDateString()) {
+      return { count: 0, date: new Date().toDateString() };
+    }
+    return parsed;
+  } catch {
+    return { count: 0, date: new Date().toDateString() };
+  }
+}
+
+function incrementUsage() {
+  const usage = getDailyUsage();
+  usage.count++;
+  usage.date = new Date().toDateString();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(usage));
+}
 
 export function QRGenerator() {
   const [url, setUrl] = useState("");
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [remaining, setRemaining] = useState(DAILY_LIMIT);
+  const [limitReached, setLimitReached] = useState(false);
+
+  useEffect(() => {
+    const usage = getDailyUsage();
+    setRemaining(DAILY_LIMIT - usage.count);
+    setLimitReached(usage.count >= DAILY_LIMIT);
+  }, []);
 
   const generate = useCallback(async (text: string) => {
     if (!text.trim()) {
       setQrDataUrl(null);
       return;
     }
+
+    const usage = getDailyUsage();
+    if (usage.count >= DAILY_LIMIT) {
+      setLimitReached(true);
+      return;
+    }
+
     setIsGenerating(true);
     try {
       const dataUrl = await generateQRDataURL(text, {
@@ -22,6 +63,8 @@ export function QRGenerator() {
         errorCorrectionLevel: "M",
       });
       setQrDataUrl(dataUrl);
+      incrementUsage();
+      setRemaining(DAILY_LIMIT - getDailyUsage().count);
     } catch {
       setQrDataUrl(null);
     } finally {
@@ -31,11 +74,11 @@ export function QRGenerator() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (url.trim()) generate(url);
-      else setQrDataUrl(null);
+      if (url.trim() && !limitReached) generate(url);
+      else if (!url.trim()) setQrDataUrl(null);
     }, 300);
     return () => clearTimeout(timer);
-  }, [url, generate]);
+  }, [url, generate, limitReached]);
 
   const download = () => {
     if (!qrDataUrl) return;
@@ -50,7 +93,12 @@ export function QRGenerator() {
       <div className="flex flex-col gap-6">
         {/* URL Input */}
         <div className="flex flex-col gap-2">
-          <span className="label">destination url</span>
+          <div className="flex items-center justify-between">
+            <span className="label">destination url</span>
+            <span className="text-[10px] font-mono text-[var(--text-tertiary)]">
+              {remaining}/{DAILY_LIMIT} today
+            </span>
+          </div>
           <div className="flex gap-3">
             <input
               type="url"
@@ -58,17 +106,33 @@ export function QRGenerator() {
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://your-link.com"
               className="hw-input flex-1"
+              disabled={limitReached}
               autoFocus
             />
             <button
               onClick={() => generate(url)}
-              disabled={!url.trim() || isGenerating}
+              disabled={!url.trim() || isGenerating || limitReached}
               className="keycap keycap-accent keycap-md disabled:opacity-40 disabled:cursor-not-allowed"
             >
               generate
             </button>
           </div>
         </div>
+
+        {/* Limit reached */}
+        {limitReached && (
+          <div className="module-recessed p-4 flex flex-col gap-2 animate-in">
+            <p className="text-[13px] text-[var(--text-primary)]">
+              Daily limit reached (20/day on free).
+            </p>
+            <Link
+              href="/pricing"
+              className="keycap keycap-accent keycap-sm self-start no-underline"
+            >
+              go pro — unlimited
+            </Link>
+          </div>
+        )}
 
         {/* QR Preview */}
         <div className="flex justify-center">
@@ -100,23 +164,31 @@ export function QRGenerator() {
           </div>
         </div>
 
-        {/* Download Button */}
+        {/* Actions */}
         {qrDataUrl && (
-          <div className="flex justify-center animate-in">
+          <div className="flex justify-center gap-3 animate-in">
             <button onClick={download} className="keycap keycap-dark keycap-md">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-2">
                 <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
               </svg>
-              download png
+              download
             </button>
+            <Link
+              href="/login"
+              className="keycap keycap-light keycap-md no-underline"
+            >
+              save to account
+            </Link>
           </div>
         )}
 
-        {/* No signup note */}
+        {/* Note */}
         <p className="text-center text-[12px] text-[var(--text-tertiary)] lowercase tracking-wide">
-          instant. no signup. no email.
+          {limitReached
+            ? "pro users get unlimited generations."
+            : "instant. no signup. no email."}
         </p>
       </div>
     </div>

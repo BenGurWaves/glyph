@@ -76,6 +76,20 @@ body {
   font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  position: relative;
+}
+
+/* Subtle noise texture overlay — makes surfaces feel physical/matte */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
 }
 
 /* force lowercase on labels */
@@ -107,71 +121,77 @@ body {
 
 /* light keycap */
 .keycap-light {
-  background: var(--key-light);
+  background: linear-gradient(180deg, #F2F2F2 0%, #E8E8E8 100%);
   color: var(--text-primary);
   border-radius: var(--radius-key);
+  border: 1px solid #D8D3CE;
   box-shadow:
-    0 3px 0 0 var(--key-shadow),
-    0 4px 8px rgba(0, 0, 0, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    0 4px 0 0 var(--key-shadow),
+    0 6px 12px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.04);
 }
 
 .keycap-light:hover {
-  background: var(--key-light-hover);
+  background: linear-gradient(180deg, #ECECEC 0%, #E0E0E0 100%);
 }
 
 .keycap-light:active {
-  transform: translateY(3px);
+  transform: translateY(4px);
   box-shadow:
     0 0 0 0 var(--key-shadow),
-    0 1px 2px rgba(0, 0, 0, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    0 1px 2px rgba(0, 0, 0, 0.08),
+    inset 0 2px 3px rgba(0, 0, 0, 0.06);
 }
 
 /* dark keycap */
 .keycap-dark {
-  background: var(--key-dark);
+  background: linear-gradient(180deg, #404040 0%, #333333 100%);
   color: var(--text-on-dark);
   border-radius: var(--radius-key);
+  border: 1px solid #2a2a2a;
   box-shadow:
-    0 3px 0 0 var(--key-shadow-dark),
-    0 4px 8px rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 var(--key-highlight);
+    0 4px 0 0 var(--key-shadow-dark),
+    0 6px 12px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
 }
 
 .keycap-dark:hover {
-  background: var(--key-dark-hover);
+  background: linear-gradient(180deg, #4a4a4a 0%, #3a3a3a 100%);
 }
 
 .keycap-dark:active {
-  transform: translateY(3px);
+  transform: translateY(4px);
   box-shadow:
     0 0 0 0 var(--key-shadow-dark),
-    0 1px 2px rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    0 1px 2px rgba(0, 0, 0, 0.2),
+    inset 0 2px 3px rgba(0, 0, 0, 0.15);
 }
 
 /* accent keycap */
 .keycap-accent {
-  background: var(--accent);
+  background: linear-gradient(180deg, #EC7035 0%, #D45A23 100%);
   color: #fff;
   border-radius: var(--radius-key);
+  border: 1px solid #C04E1C;
   box-shadow:
-    0 3px 0 0 var(--accent-hover),
-    0 4px 8px rgba(232, 101, 43, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    0 4px 0 0 #B8491A,
+    0 6px 12px rgba(232, 101, 43, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.1);
 }
 
 .keycap-accent:hover {
-  background: var(--accent-hover);
+  background: linear-gradient(180deg, #E8652B 0%, #C84F1E 100%);
 }
 
 .keycap-accent:active {
-  transform: translateY(3px);
+  transform: translateY(4px);
   box-shadow:
-    0 0 0 0 var(--accent-hover),
-    0 1px 2px rgba(232, 101, 43, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    0 0 0 0 #B8491A,
+    0 1px 2px rgba(232, 101, 43, 0.2),
+    inset 0 2px 3px rgba(0, 0, 0, 0.12);
 }
 
 /* sizes */
@@ -186,8 +206,9 @@ body {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-module);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.8),
-    0 1px 3px rgba(0, 0, 0, 0.04);
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 2px 4px rgba(0, 0, 0, 0.05),
+    0 4px 8px rgba(0, 0, 0, 0.02);
 }
 
 .module-recessed {
@@ -195,17 +216,18 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius-module);
   box-shadow:
-    inset 0 2px 4px rgba(0, 0, 0, 0.06),
-    inset 0 1px 0 rgba(0, 0, 0, 0.03);
+    inset 0 3px 6px rgba(0, 0, 0, 0.07),
+    inset 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .module-dark {
-  background: var(--surface-dark);
+  background: linear-gradient(180deg, #1E1E1E 0%, #171717 100%);
   border: 1px solid #2a2a2a;
   border-radius: var(--radius-module);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.03),
-    0 1px 3px rgba(0, 0, 0, 0.15);
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 4px 12px rgba(0, 0, 0, 0.2),
+    0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* ─── LED Indicators ─── */

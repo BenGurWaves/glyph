@@ -1,44 +1,42 @@
+"use client";
+
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
 import Link from "next/link";
-import type { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "Pricing — Glyph QR Code Platform",
-  description:
-    "Free QR code generation forever. Pro analytics for $3/month — 90% cheaper than Beaconstac, QR Tiger, and QR Code Generator Pro.",
-};
-
-const faqJsonLd = JSON.stringify({
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: [
-    {
-      "@type": "Question",
-      name: "How much does Glyph cost?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Glyph is free for unlimited QR code generation and scanning. Pro analytics costs $3/month — 90% cheaper than competitors like Beaconstac ($49/mo).",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "What payment methods does Glyph accept?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Glyph accepts CashApp ($Calyvent), Bitcoin (BTC), Ethereum (ETH), and Solana (SOL). Stripe card payments coming soon.",
-      },
-    },
-  ],
-});
+import { useState } from "react";
 
 export default function PricingPage() {
+  const [email, setEmail] = useState("");
+  const [coupon, setCoupon] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleStripeCheckout = async () => {
+    if (!email) {
+      setError("Enter your email to continue.");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+
+    const res = await fetch("/api/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, coupon: coupon.trim() || undefined }),
+    });
+
+    const data = await res.json();
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      setError(data.error || "Something went wrong.");
+      setLoading(false);
+    }
+  };
+
   return (
     <>
       <Nav />
-      <script type="application/ld+json" suppressHydrationWarning>
-        {faqJsonLd}
-      </script>
 
       <main className="flex-1 pt-14">
         <section className="max-w-3xl mx-auto px-6 pt-20 pb-16">
@@ -71,7 +69,7 @@ export default function PricingPage() {
                 </div>
                 <ul className="flex flex-col gap-3 text-[13px] text-[var(--text-secondary)]">
                   {[
-                    "unlimited static qr codes",
+                    "20 qr generations per day",
                     "camera qr scanner",
                     "3 dynamic (trackable) codes",
                     "png download",
@@ -108,12 +106,14 @@ export default function PricingPage() {
                 <ul className="flex flex-col gap-3 text-[13px]">
                   {[
                     "everything in free",
+                    "unlimited generations",
                     "unlimited dynamic codes",
                     "full scan analytics",
                     "location, device, time data",
                     "custom colors and logo",
                     "bulk csv generation",
                     "api access",
+                    "save all codes to account",
                   ].map((item) => (
                     <li key={item} className="flex items-center gap-2">
                       <span className="led led-active" />
@@ -121,31 +121,57 @@ export default function PricingPage() {
                     </li>
                   ))}
                 </ul>
-                <div className="flex flex-col gap-2 mt-auto">
+
+                {/* Checkout form */}
+                <div className="flex flex-col gap-3 mt-4 pt-4 border-t border-[#2a2a2a]">
+                  <div className="flex flex-col gap-1.5">
+                    <span className="label text-[var(--text-on-dark-secondary)]">email</span>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@email.com"
+                      className="hw-input !bg-[#2a2a2a] !border-[#3a3a3a] !text-[var(--text-on-dark)] !placeholder-[#666]"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <span className="label text-[var(--text-on-dark-secondary)]">coupon code</span>
+                    <input
+                      type="text"
+                      value={coupon}
+                      onChange={(e) => setCoupon(e.target.value)}
+                      placeholder="optional"
+                      className="hw-input !bg-[#2a2a2a] !border-[#3a3a3a] !text-[var(--text-on-dark)] !placeholder-[#666]"
+                    />
+                  </div>
+
+                  {error && (
+                    <p className="text-[12px] text-[var(--accent)]">{error}</p>
+                  )}
+
+                  <button
+                    onClick={handleStripeCheckout}
+                    disabled={loading}
+                    className="keycap keycap-accent keycap-lg disabled:opacity-50 w-full"
+                  >
+                    {loading ? "..." : "go pro — $3/mo"}
+                  </button>
+
+                  <p className="text-[11px] text-[var(--text-on-dark-secondary)] text-center">
+                    powered by stripe. cancel anytime.
+                  </p>
+                </div>
+
+                {/* Alternative payments */}
+                <div className="flex flex-col gap-3 pt-4 border-t border-[#2a2a2a]">
                   <span className="label text-[var(--text-on-dark-secondary)]">
-                    pay with
+                    or pay with crypto
                   </span>
                   <div className="flex flex-wrap gap-2">
-                    <PaymentButton
-                      label="cashapp"
-                      detail="$Calyvent"
-                      href="https://cash.app/$Calyvent"
-                    />
-                    <PaymentButton
-                      label="bitcoin"
-                      detail="bc1q...34z9"
-                      href="#btc"
-                    />
-                    <PaymentButton
-                      label="ethereum"
-                      detail="0xced...0819"
-                      href="#eth"
-                    />
-                    <PaymentButton
-                      label="solana"
-                      detail="5QHD...vQ3i"
-                      href="#sol"
-                    />
+                    <a href="https://cash.app/$Calyvent" target="_blank" rel="noopener noreferrer" className="keycap keycap-dark keycap-sm no-underline flex items-center gap-2">
+                      <span>cashapp</span>
+                      <span className="text-[10px] text-[var(--text-on-dark-secondary)] font-mono">$Calyvent</span>
+                    </a>
                   </div>
                 </div>
               </div>
@@ -160,34 +186,18 @@ export default function PricingPage() {
                 <table className="w-full text-[13px]">
                   <thead>
                     <tr className="border-b border-[var(--border-subtle)]">
-                      <th className="text-left py-3 font-medium lowercase text-[var(--text-secondary)]">
-                        tool
-                      </th>
-                      <th className="text-left py-3 font-medium lowercase text-[var(--text-secondary)]">
-                        price
-                      </th>
-                      <th className="text-left py-3 font-medium lowercase text-[var(--text-secondary)]">
-                        tracking
-                      </th>
-                      <th className="text-left py-3 font-medium lowercase text-[var(--text-secondary)]">
-                        scanner
-                      </th>
+                      <th className="text-left py-3 font-medium lowercase text-[var(--text-secondary)]">tool</th>
+                      <th className="text-left py-3 font-medium lowercase text-[var(--text-secondary)]">price</th>
+                      <th className="text-left py-3 font-medium lowercase text-[var(--text-secondary)]">tracking</th>
+                      <th className="text-left py-3 font-medium lowercase text-[var(--text-secondary)]">scanner</th>
                     </tr>
                   </thead>
                   <tbody className="text-[var(--text-secondary)]">
                     <tr className="border-b border-[var(--border-subtle)]">
-                      <td className="py-3 font-medium text-[var(--text-primary)]">
-                        glyph pro
-                      </td>
-                      <td className="py-3 text-[var(--accent)] font-medium">
-                        $3/mo
-                      </td>
-                      <td className="py-3">
-                        <span className="led led-active inline-block" />
-                      </td>
-                      <td className="py-3">
-                        <span className="led led-active inline-block" />
-                      </td>
+                      <td className="py-3 font-medium text-[var(--text-primary)]">glyph pro</td>
+                      <td className="py-3 text-[var(--accent)] font-medium">$3/mo</td>
+                      <td className="py-3"><span className="led led-active inline-block" /></td>
+                      <td className="py-3"><span className="led led-active inline-block" /></td>
                     </tr>
                     {[
                       { name: "beaconstac", price: "$49/mo" },
@@ -195,18 +205,11 @@ export default function PricingPage() {
                       { name: "qr code generator", price: "$15/mo" },
                       { name: "uniqode", price: "$35/mo" },
                     ].map((comp) => (
-                      <tr
-                        key={comp.name}
-                        className="border-b border-[var(--border-subtle)]"
-                      >
+                      <tr key={comp.name} className="border-b border-[var(--border-subtle)]">
                         <td className="py-3">{comp.name}</td>
                         <td className="py-3">{comp.price}</td>
-                        <td className="py-3">
-                          <span className="led led-active inline-block" />
-                        </td>
-                        <td className="py-3">
-                          <span className="led inline-block" />
-                        </td>
+                        <td className="py-3"><span className="led led-active inline-block" /></td>
+                        <td className="py-3"><span className="led inline-block" /></td>
                       </tr>
                     ))}
                   </tbody>
@@ -214,32 +217,26 @@ export default function PricingPage() {
               </div>
             </div>
 
-            {/* Payment Details */}
-            <div className="module p-8" id="btc">
+            {/* Crypto Payment Details */}
+            <div className="module p-8">
               <h2 className="text-[11px] font-medium text-[var(--text-tertiary)] uppercase tracking-[0.15em] mb-6">
-                Payment details
+                Crypto payment details
               </h2>
               <div className="flex flex-col gap-6">
-                <PaymentDetail
-                  method="CashApp"
-                  value="$Calyvent"
-                  instructions='Send $3 to $Calyvent with your email as the note. You will receive access within 1 hour.'
-                />
-                <PaymentDetail
-                  method="Bitcoin (BTC)"
-                  value="bc1q956sg5dr8d9m4f23udrjaujvn00dz6fma634z9"
-                  instructions="Send $3 equivalent in BTC. Include your email in the transaction memo or email hello@calyvent.com with your transaction ID."
-                />
-                <PaymentDetail
-                  method="Ethereum (ETH)"
-                  value="0xced680c6fc75e7b63959f5826489fce866e60819"
-                  instructions="Send $3 equivalent in ETH. Email hello@calyvent.com with your transaction hash."
-                />
-                <PaymentDetail
-                  method="Solana (SOL)"
-                  value="5QHDcj8tRYe6cYzUBU4q9Ro5kRZ2TqpDMbffdGyevQ3i"
-                  instructions="Send $3 equivalent in SOL. Email hello@calyvent.com with your transaction signature."
-                />
+                {[
+                  { method: "CashApp", value: "$Calyvent", note: "Send $3 with your email as note." },
+                  { method: "Bitcoin (BTC)", value: "bc1q956sg5dr8d9m4f23udrjaujvn00dz6fma634z9", note: "Send $3 equivalent. Email hello@calyvent.com with txn ID." },
+                  { method: "Ethereum (ETH)", value: "0xced680c6fc75e7b63959f5826489fce866e60819", note: "Send $3 equivalent. Email hello@calyvent.com with txn hash." },
+                  { method: "Solana (SOL)", value: "5QHDcj8tRYe6cYzUBU4q9Ro5kRZ2TqpDMbffdGyevQ3i", note: "Send $3 equivalent. Email hello@calyvent.com with txn sig." },
+                ].map((p) => (
+                  <div key={p.method} className="flex flex-col gap-2">
+                    <span className="text-[14px] font-medium lowercase">{p.method}</span>
+                    <div className="module-recessed p-3">
+                      <code className="font-mono text-[12px] break-all select-all">{p.value}</code>
+                    </div>
+                    <p className="text-[12px] text-[var(--text-secondary)]">{p.note}</p>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -247,49 +244,5 @@ export default function PricingPage() {
       </main>
       <Footer />
     </>
-  );
-}
-
-function PaymentButton({
-  label,
-  detail,
-  href,
-}: {
-  label: string;
-  detail: string;
-  href: string;
-}) {
-  return (
-    <a
-      href={href}
-      className="keycap keycap-dark keycap-sm no-underline flex items-center gap-2"
-    >
-      <span>{label}</span>
-      <span className="text-[10px] text-[var(--text-on-dark-secondary)] font-mono">
-        {detail}
-      </span>
-    </a>
-  );
-}
-
-function PaymentDetail({
-  method,
-  value,
-  instructions,
-}: {
-  method: string;
-  value: string;
-  instructions: string;
-}) {
-  return (
-    <div className="flex flex-col gap-2">
-      <span className="text-[14px] font-medium lowercase">{method}</span>
-      <div className="module-recessed p-3">
-        <code className="font-mono text-[12px] break-all select-all">
-          {value}
-        </code>
-      </div>
-      <p className="text-[12px] text-[var(--text-secondary)]">{instructions}</p>
-    </div>
   );
 }
