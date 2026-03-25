@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { generateQRDataURL } from "@/lib/qr";
+import { generateQRWithLogo } from "@/lib/qr-with-logo";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 
@@ -45,7 +46,19 @@ export function QRGenerator() {
   // Pro features
   const [fgColor, setFgColor] = useState("#1A1A1A");
   const [bgColor, setBgColor] = useState("#FFFFFF");
+  const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
   const [showProControls, setShowProControls] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setLogoDataUrl(ev.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedUrl = useRef<string>("");
@@ -93,7 +106,12 @@ export function QRGenerator() {
   // Auto-save for Pro users after 3 seconds of inactivity
   const autoSave = useCallback(async (destUrl: string) => {
     if (!userId.current || !isPro || !destUrl.trim()) return;
-    if (destUrl === lastSavedUrl.current) return;
+    // Normalize URL
+    let normalizedUrl = destUrl.trim();
+    if (!/^https?:\/\//i.test(normalizedUrl)) {
+      normalizedUrl = "https://" + normalizedUrl;
+    }
+    if (normalizedUrl === lastSavedUrl.current) return;
 
     const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
     let shortCode = "";
@@ -105,14 +123,14 @@ export function QRGenerator() {
     const { error } = await supabase.from("qr_codes").insert({
       user_id: userId.current,
       short_code: shortCode,
-      destination_url: destUrl,
+      destination_url: normalizedUrl,
       title,
       qr_type: "dynamic",
       style_config: { fgColor, bgColor },
     });
 
     if (!error) {
-      lastSavedUrl.current = destUrl;
+      lastSavedUrl.current = normalizedUrl;
       setAutoSaveStatus("auto-saved to dashboard");
       setSaved(true);
       setTimeout(() => setAutoSaveStatus(null), 3000);
@@ -137,12 +155,17 @@ export function QRGenerator() {
     setSaved(false);
     setAutoSaveStatus(null);
     try {
-      const dataUrl = await generateQRDataURL(text, {
-        width: 300,
-        margin: 2,
-        color: { dark: fgColor, light: bgColor },
-        errorCorrectionLevel: isPro ? "H" : "M",
-      });
+      let dataUrl: string;
+      if (isPro && logoDataUrl) {
+        dataUrl = await generateQRWithLogo(text, { width: 300, fgColor, bgColor, logoDataUrl });
+      } else {
+        dataUrl = await generateQRDataURL(text, {
+          width: 300,
+          margin: 2,
+          color: { dark: fgColor, light: bgColor },
+          errorCorrectionLevel: isPro ? "H" : "M",
+        });
+      }
       setQrDataUrl(dataUrl);
       if (!isPro) {
         incrementUsage();
@@ -159,7 +182,7 @@ export function QRGenerator() {
     } finally {
       setIsGenerating(false);
     }
-  }, [isPro, fgColor, bgColor, autoSave]);
+  }, [isPro, fgColor, bgColor, logoDataUrl, autoSave]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -174,11 +197,11 @@ export function QRGenerator() {
   }, [url, generate, limitReached]);
 
   useEffect(() => {
-    // Re-generate when colors change (Pro only)
+    // Re-generate when colors or logo change (Pro only)
     if (isPro && url.trim() && qrDataUrl) {
       generate(url);
     }
-  }, [fgColor, bgColor]);
+  }, [fgColor, bgColor, logoDataUrl]);
 
   const download = () => {
     if (!qrDataUrl) return;
@@ -260,6 +283,37 @@ export function QRGenerator() {
                     </div>
                   </div>
                 </div>
+                {/* Logo upload */}
+                <div className="flex flex-col gap-1.5">
+                  <span className="label">logo overlay</span>
+                  <div className="flex items-center gap-3">
+                    <input
+                      ref={logoInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoUpload}
+                      className="hidden"
+                    />
+                    <button
+                      onClick={() => logoInputRef.current?.click()}
+                      className="keycap keycap-light keycap-sm"
+                    >
+                      {logoDataUrl ? "change logo" : "upload logo"}
+                    </button>
+                    {logoDataUrl && (
+                      <>
+                        <img src={logoDataUrl} alt="Logo" className="w-8 h-8 rounded object-cover border border-[var(--border)]" />
+                        <button
+                          onClick={() => setLogoDataUrl(null)}
+                          className="text-[10px] text-[var(--text-tertiary)] hover:text-[var(--accent)]"
+                        >
+                          remove
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+
                 {/* Quick presets */}
                 <div className="flex gap-2">
                   {[

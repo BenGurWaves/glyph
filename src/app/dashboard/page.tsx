@@ -153,6 +153,18 @@ export default function DashboardPage() {
               </button>
             </div>
 
+            {/* Pro tools */}
+            {isPro && (
+              <div className="flex gap-3">
+                <Link href="/dashboard/bulk" className="keycap keycap-light keycap-sm no-underline">
+                  bulk generate
+                </Link>
+                <Link href="/dashboard/api-keys" className="keycap keycap-light keycap-sm no-underline">
+                  api keys
+                </Link>
+              </div>
+            )}
+
             {/* Stats bar */}
             <div className="grid grid-cols-3 gap-4">
               <div className="module-recessed p-4 flex flex-col gap-1">

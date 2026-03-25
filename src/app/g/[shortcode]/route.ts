@@ -71,5 +71,11 @@ export async function GET(
     });
   }
 
-  return NextResponse.redirect(qr.destination_url, { status: 302 });
+  // Ensure URL has protocol
+  let destUrl = qr.destination_url;
+  if (!/^https?:\/\//i.test(destUrl)) {
+    destUrl = "https://" + destUrl;
+  }
+
+  return NextResponse.redirect(destUrl, { status: 302 });
 }
