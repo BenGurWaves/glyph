@@ -1,26 +1,337 @@
 @import "tailwindcss";
 
+/* ─── Glyph Design System: Hardware UI ─── */
+/* Inspired by Teenage Engineering OP-1, TX-6, Polestar collab */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* surfaces */
+  --surface: #F5F0EB;
+  --surface-mid: #E8E3DE;
+  --surface-dark: #1A1A1A;
+  --surface-elevated: #FAF7F4;
+  --surface-recessed: #DED9D4;
+
+  /* text */
+  --text-primary: #1A1A1A;
+  --text-secondary: #8A8580;
+  --text-tertiary: #B5B0AB;
+  --text-on-dark: #F5F0EB;
+  --text-on-dark-secondary: #8A8580;
+
+  /* accent — matte warm orange */
+  --accent: #E8652B;
+  --accent-hover: #D45A23;
+  --accent-subtle: rgba(232, 101, 43, 0.08);
+  --accent-glow: rgba(232, 101, 43, 0.4);
+
+  /* keycap surfaces */
+  --key-light: #EDEDED;
+  --key-light-hover: #E3E3E3;
+  --key-dark: #3A3A3A;
+  --key-dark-hover: #444444;
+  --key-shadow: #C5C0BB;
+  --key-shadow-dark: #111111;
+  --key-highlight: rgba(255, 255, 255, 0.15);
+
+  /* borders */
+  --border: #D5D0CB;
+  --border-subtle: #E8E3DE;
+
+  /* misc */
+  --radius-key: 10px;
+  --radius-module: 14px;
+  --transition-press: 80ms ease-out;
+  --transition-smooth: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  --background: var(--surface);
+  --foreground: var(--text-primary);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-surface: var(--surface);
+  --color-surface-mid: var(--surface-mid);
+  --color-surface-dark: var(--surface-dark);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-key-light: var(--key-light);
+  --color-key-dark: var(--key-dark);
+  --color-key-shadow: var(--key-shadow);
+  --color-border: var(--border);
+  --color-border-subtle: var(--border-subtle);
+  --font-sans: var(--font-space-grotesk);
+  --font-mono: var(--font-jetbrains-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* ─── Base ─── */
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--surface);
+  color: var(--text-primary);
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* force lowercase on labels */
+.label {
+  text-transform: lowercase;
+  letter-spacing: 0.04em;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+/* ─── Keycap Button System ─── */
+
+.keycap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 500;
+  text-transform: lowercase;
+  letter-spacing: 0.03em;
+  transition: transform var(--transition-press), box-shadow var(--transition-press);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* light keycap */
+.keycap-light {
+  background: var(--key-light);
+  color: var(--text-primary);
+  border-radius: var(--radius-key);
+  box-shadow:
+    0 3px 0 0 var(--key-shadow),
+    0 4px 8px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.keycap-light:hover {
+  background: var(--key-light-hover);
+}
+
+.keycap-light:active {
+  transform: translateY(3px);
+  box-shadow:
+    0 0 0 0 var(--key-shadow),
+    0 1px 2px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* dark keycap */
+.keycap-dark {
+  background: var(--key-dark);
+  color: var(--text-on-dark);
+  border-radius: var(--radius-key);
+  box-shadow:
+    0 3px 0 0 var(--key-shadow-dark),
+    0 4px 8px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 var(--key-highlight);
+}
+
+.keycap-dark:hover {
+  background: var(--key-dark-hover);
+}
+
+.keycap-dark:active {
+  transform: translateY(3px);
+  box-shadow:
+    0 0 0 0 var(--key-shadow-dark),
+    0 1px 2px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* accent keycap */
+.keycap-accent {
+  background: var(--accent);
+  color: #fff;
+  border-radius: var(--radius-key);
+  box-shadow:
+    0 3px 0 0 var(--accent-hover),
+    0 4px 8px rgba(232, 101, 43, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.keycap-accent:hover {
+  background: var(--accent-hover);
+}
+
+.keycap-accent:active {
+  transform: translateY(3px);
+  box-shadow:
+    0 0 0 0 var(--accent-hover),
+    0 1px 2px rgba(232, 101, 43, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* sizes */
+.keycap-sm { height: 36px; padding: 0 14px; font-size: 12px; }
+.keycap-md { height: 44px; padding: 0 20px; font-size: 14px; }
+.keycap-lg { height: 52px; padding: 0 28px; font-size: 15px; }
+
+/* ─── Module Cards ─── */
+
+.module {
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-module);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.module-recessed {
+  background: var(--surface-recessed);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-module);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(0, 0, 0, 0.03);
+}
+
+.module-dark {
+  background: var(--surface-dark);
+  border: 1px solid #2a2a2a;
+  border-radius: var(--radius-module);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+/* ─── LED Indicators ─── */
+
+.led {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface-recessed);
+  transition: all var(--transition-smooth);
+}
+
+.led-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow), 0 0 2px var(--accent);
+}
+
+/* ─── Input Fields (hardware style) ─── */
+
+.hw-input {
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-key);
+  padding: 12px 16px;
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color var(--transition-smooth), box-shadow var(--transition-smooth);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.hw-input:focus {
+  border-color: var(--accent);
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.04),
+    0 0 0 3px var(--accent-subtle);
+}
+
+.hw-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* ─── Toggle Switch ─── */
+
+.toggle-track {
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  background: var(--surface-recessed);
+  border: 1px solid var(--border);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.08);
+  position: relative;
+  cursor: pointer;
+  transition: background var(--transition-smooth), border-color var(--transition-smooth);
+}
+
+.toggle-track[data-active="true"] {
+  background: var(--accent);
+  border-color: var(--accent-hover);
+}
+
+.toggle-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15), 0 1px 1px rgba(0, 0, 0, 0.06);
+  transition: transform var(--transition-smooth);
+}
+
+.toggle-track[data-active="true"] .toggle-thumb {
+  transform: translateX(20px);
+}
+
+/* ─── Scrollbar (subtle) ─── */
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
+}
+
+/* ─── Smooth page transitions ─── */
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-in {
+  animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* stagger children */
+.stagger > * {
+  opacity: 0;
+  animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 80ms; }
+.stagger > *:nth-child(3) { animation-delay: 160ms; }
+.stagger > *:nth-child(4) { animation-delay: 240ms; }
+.stagger > *:nth-child(5) { animation-delay: 320ms; }
+.stagger > *:nth-child(6) { animation-delay: 400ms; }
+
+/* ─── Selection ─── */
+
+::selection {
+  background: var(--accent-subtle);
+  color: var(--text-primary);
 }
