@@ -168,7 +168,7 @@ export default function Home() {
               <ul className="flex flex-col gap-2 text-[13px] text-[var(--text-secondary)]">
                 <li className="flex items-center gap-2">
                   <span className="led led-active" />
-                  20 qr generations per day
+                  5 qr generations per day
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="led led-active" />
@@ -232,6 +232,14 @@ export default function Home() {
                   <span className="led led-active" />
                   api access
                 </li>
+                <li className="flex items-center gap-2">
+                  <span className="led led-active" />
+                  edit destination url anytime
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="led led-active" />
+                  no ads or cross-promotions
+                </li>
               </ul>
               <Link
                 href="/pricing"
@@ -252,7 +260,7 @@ export default function Home() {
             {[
               {
                 q: "How many QR codes can I make for free?",
-                a: "20 per day, forever. No email required, no signup wall. If you need more, Pro gives you unlimited for $3/month.",
+                a: "5 per day, forever. No email required, no signup wall. If you need more, Pro gives you unlimited for $3/month.",
               },
               {
                 q: "What is a dynamic QR code?",
@@ -268,7 +276,7 @@ export default function Home() {
               },
               {
                 q: "What payment methods do you accept?",
-                a: "CashApp, Bitcoin, Ethereum, and Solana. We are adding Stripe (credit/debit cards) soon.",
+                a: "Stripe (credit/debit cards, CashApp, Apple Pay, Google Pay), Bitcoin, Ethereum, and Solana. Pay however you prefer.",
               },
               {
                 q: "Can I change the destination URL after printing?",
@@ -303,6 +311,31 @@ export default function Home() {
                 </p>
               </details>
             ))}
+          </div>
+        </section>
+
+        {/* ─── LinkDrop Cross-Promo ─── */}
+        <section className="max-w-5xl mx-auto px-6 py-12">
+          <div className="module-recessed p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex flex-col gap-1">
+              <span className="text-[11px] font-medium text-[var(--text-tertiary)] uppercase tracking-[0.15em]">
+                from calyvent
+              </span>
+              <span className="text-[15px] font-medium lowercase">
+                need a link-in-bio page?
+              </span>
+              <p className="text-[13px] text-[var(--text-secondary)]">
+                LinkDrop — elegant bio pages that pair with your QR codes. Free to start.
+              </p>
+            </div>
+            <a
+              href="https://linkdrop.calyvent.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="keycap keycap-light keycap-sm no-underline shrink-0"
+            >
+              try linkdrop
+            </a>
           </div>
         </section>
       </main>

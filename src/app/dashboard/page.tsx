@@ -80,6 +80,7 @@ export default function DashboardPage() {
   const [editBg, setEditBg] = useState("#FFFFFF");
   const [editLogo, setEditLogo] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [editUrl, setEditUrl] = useState("");
   const logoInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
@@ -154,6 +155,7 @@ export default function DashboardPage() {
     setEditFg(qr.style_config?.fgColor || "#1A1A1A");
     setEditBg(qr.style_config?.bgColor || "#FFFFFF");
     setEditLogo(qr.style_config?.logo || null);
+    setEditUrl(qr.destination_url);
   };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -169,17 +171,31 @@ export default function DashboardPage() {
     const newConfig: StyleConfig = { fgColor: editFg, bgColor: editBg };
     if (editLogo) newConfig.logo = editLogo;
 
+    const updatePayload: Record<string, unknown> = {
+      style_config: newConfig,
+      updated_at: new Date().toISOString(),
+    };
+
+    // Update destination URL if changed (dynamic codes only)
+    if (editUrl && editUrl !== qr.destination_url && qr.qr_type === "dynamic") {
+      updatePayload.destination_url = editUrl;
+    }
+
     await supabase.from("qr_codes")
-      .update({ style_config: newConfig, updated_at: new Date().toISOString() })
+      .update(updatePayload)
       .eq("id", qr.id);
 
     // Re-render QR
-    const updated = { ...qr, style_config: newConfig };
+    const updated = {
+      ...qr,
+      style_config: newConfig,
+      destination_url: (updatePayload.destination_url as string) || qr.destination_url,
+    };
     const newImage = await renderQR(updated);
 
     setQrCodes((prev) =>
       prev.map((q) =>
-        q.id === qr.id ? { ...q, style_config: newConfig, qr_image: newImage } : q
+        q.id === qr.id ? { ...updated, qr_image: newImage, scan_count: q.scan_count } : q
       )
     );
 
@@ -308,6 +324,23 @@ export default function DashboardPage() {
                     {editingId === qr.id && isPro && (
                       <div className="module-recessed p-4 flex flex-col gap-4 animate-in">
                         <span className="label">customize qr code</span>
+
+                        {/* Destination URL editing (dynamic codes only) */}
+                        {qr.qr_type === "dynamic" && (
+                          <div className="flex flex-col gap-1.5">
+                            <span className="label">destination url</span>
+                            <input
+                              type="url"
+                              value={editUrl}
+                              onChange={(e) => setEditUrl(e.target.value)}
+                              placeholder="https://example.com"
+                              className="hw-input font-mono text-[12px]"
+                            />
+                            <span className="text-[10px] text-[var(--text-tertiary)]">
+                              change where this QR code points without reprinting
+                            </span>
+                          </div>
+                        )}
 
                         <div className="flex gap-6">
                           <div className="flex flex-col gap-1.5">

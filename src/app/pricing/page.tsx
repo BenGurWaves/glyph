@@ -93,7 +93,7 @@ export default function PricingPage() {
                 </div>
                 <ul className="flex flex-col gap-3 text-[13px] text-[var(--text-secondary)]">
                   {[
-                    "20 qr generations per day",
+                    "5 qr generations per day",
                     "camera qr scanner",
                     "3 dynamic (trackable) codes",
                     "png download",
@@ -143,6 +143,8 @@ export default function PricingPage() {
                     "custom colors and logo",
                     "bulk csv generation",
                     "api access",
+                    "edit destination url anytime",
+                    "no ads or cross-promotions",
                     "save all codes to account",
                   ].map((item) => (
                     <li key={item} className="flex items-center gap-2">
@@ -228,12 +230,32 @@ export default function PricingPage() {
                   <span className="label text-[var(--text-on-dark-secondary)]">
                     or pay with crypto
                   </span>
-                  <div className="flex flex-wrap gap-2">
-                    <a href="https://cash.app/$Calyvent" target="_blank" rel="noopener noreferrer" className="keycap keycap-dark keycap-sm no-underline flex items-center gap-2">
-                      <span>cashapp</span>
-                      <span className="text-[10px] text-[var(--text-on-dark-secondary)] font-mono">$Calyvent</span>
-                    </a>
-                  </div>
+                  <p className="text-[11px] text-[var(--text-on-dark-secondary)]">
+                    bitcoin, ethereum, solana, and more via coinbase commerce
+                  </p>
+                  <button
+                    onClick={async () => {
+                      if (!email) { setError("Enter your email first."); return; }
+                      setLoading(true);
+                      setError(null);
+                      const res = await fetch("/api/checkout/crypto", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ email }),
+                      });
+                      const data = await res.json();
+                      if (data.url) {
+                        window.location.href = data.url;
+                      } else {
+                        setError(data.error || "Crypto checkout failed.");
+                        setLoading(false);
+                      }
+                    }}
+                    disabled={loading}
+                    className="keycap keycap-dark keycap-md disabled:opacity-50 w-full"
+                  >
+                    {loading ? "..." : "pay with crypto — $3"}
+                  </button>
                 </div>
               </div>
             </div>
@@ -281,23 +303,27 @@ export default function PricingPage() {
             {/* Crypto Payment Details */}
             <div className="module p-8">
               <h2 className="text-[11px] font-medium text-[var(--text-tertiary)] uppercase tracking-[0.15em] mb-6">
-                Crypto payment details
+                How crypto payments work
               </h2>
-              <div className="flex flex-col gap-6">
-                {[
-                  { method: "CashApp", value: "$Calyvent", note: "Send $3 with your email as note." },
-                  { method: "Bitcoin (BTC)", value: "bc1q956sg5dr8d9m4f23udrjaujvn00dz6fma634z9", note: "Send $3 equivalent. Email hello@calyvent.com with txn ID." },
-                  { method: "Ethereum (ETH)", value: "0xced680c6fc75e7b63959f5826489fce866e60819", note: "Send $3 equivalent. Email hello@calyvent.com with txn hash." },
-                  { method: "Solana (SOL)", value: "5QHDcj8tRYe6cYzUBU4q9Ro5kRZ2TqpDMbffdGyevQ3i", note: "Send $3 equivalent. Email hello@calyvent.com with txn sig." },
-                ].map((p) => (
-                  <div key={p.method} className="flex flex-col gap-2">
-                    <span className="text-[14px] font-medium lowercase">{p.method}</span>
-                    <div className="module-recessed p-3">
-                      <code className="font-mono text-[12px] break-all select-all">{p.value}</code>
+              <div className="flex flex-col gap-4">
+                <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
+                  Crypto payments are processed through Coinbase Commerce. Click
+                  &ldquo;pay with crypto&rdquo; above, choose your preferred
+                  cryptocurrency (Bitcoin, Ethereum, Solana, and more), and
+                  complete the payment. Your Pro subscription activates
+                  automatically once the transaction confirms on-chain.
+                </p>
+                <div className="grid grid-cols-3 gap-3">
+                  {["bitcoin", "ethereum", "solana"].map((coin) => (
+                    <div key={coin} className="module-recessed p-3 flex items-center gap-2">
+                      <span className="led led-active" />
+                      <span className="text-[12px] text-[var(--text-secondary)] lowercase">{coin}</span>
                     </div>
-                    <p className="text-[12px] text-[var(--text-secondary)]">{p.note}</p>
-                  </div>
-                ))}
+                  ))}
+                </div>
+                <p className="text-[11px] text-[var(--text-tertiary)]">
+                  No manual email required. Payment verification is fully automated.
+                </p>
               </div>
             </div>
           </div>

@@ -59,6 +59,7 @@ export async function POST(request: NextRequest) {
     params.append("customer_email", email);
     params.append("mode", "subscription");
     params.append("payment_method_types[0]", "card");
+    params.append("payment_method_types[1]", "cashapp");
     params.append("line_items[0][price_data][currency]", "usd");
     params.append("line_items[0][price_data][product_data][name]", "Glyph Pro");
     params.append("line_items[0][price_data][product_data][description]", "Unlimited dynamic QR codes, scan analytics, custom styling, bulk generation, API access");

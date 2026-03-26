@@ -1,4 +1,4 @@
-const DAILY_FREE_LIMIT = 20;
+const DAILY_FREE_LIMIT = 5;
 
 // Simple in-memory rate limiter (resets on deploy/restart)
 // For production at scale, use Cloudflare KV or Supabase

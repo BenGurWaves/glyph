@@ -81,7 +81,46 @@ const jsonLd = JSON.stringify({
     url: "https://calyvent.com",
   },
   datePublished: "2026-03-25",
-  dateModified: "2026-03-25",
+  dateModified: "2026-03-26",
+});
+
+const faqJsonLd = JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "How many QR codes can I make for free?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "5 per day, forever. No email required, no signup wall. If you need more, Pro gives you unlimited for $3/month.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What is a dynamic QR code?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "A dynamic QR code routes through Glyph before reaching your destination. This lets us track every scan — location, device, browser, and time — without changing the printed code.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Can I change the destination URL after printing?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes — that is the point of dynamic codes. Change where your QR code points without reprinting. Your analytics carry over.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What payment methods do you accept?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Stripe (credit/debit cards, CashApp, Apple Pay, Google Pay), Bitcoin, Ethereum, and Solana via Coinbase Commerce.",
+      },
+    },
+  ],
 });
 
 export default function RootLayout({
@@ -96,6 +135,7 @@ export default function RootLayout({
     >
       <head>
         <script type="application/ld+json" suppressHydrationWarning>{jsonLd}</script>
+        <script type="application/ld+json" suppressHydrationWarning>{faqJsonLd}</script>
       </head>
       <body className="min-h-full flex flex-col bg-[var(--surface)] text-[var(--text-primary)]">
         {children}

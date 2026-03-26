@@ -21,6 +21,12 @@ export function Footer() {
             </span>
           </div>
           <div className="flex items-center gap-4">
+            <Link href="/docs" className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] no-underline transition-colors lowercase tracking-wide">
+              docs
+            </Link>
+            <a href="https://linkdrop.calyvent.com" target="_blank" rel="noopener noreferrer" className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] no-underline transition-colors lowercase tracking-wide">
+              linkdrop
+            </a>
             <Link href="/legal/terms" className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] no-underline transition-colors lowercase tracking-wide">
               terms
             </Link>

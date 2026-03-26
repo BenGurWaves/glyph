@@ -6,7 +6,7 @@ import { generateQRWithLogo } from "@/lib/qr-with-logo";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 
-const DAILY_LIMIT = 20;
+const DAILY_LIMIT = 5;
 const STORAGE_KEY = "glyph_daily_gen";
 const AUTO_SAVE_DELAY = 3000;
 
