@@ -414,6 +414,19 @@ export function QRGenerator() {
           </div>
         )}
 
+        {/* LinkDrop cross-promote */}
+        {qrDataUrl && (
+          <div className="flex justify-center animate-in">
+            <a
+              href="https://linkdrop.calyvent.com"
+              target="_blank"
+              className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] no-underline transition-colors lowercase mt-2 inline-block"
+            >
+              add this to your linkdrop page &rarr;
+            </a>
+          </div>
+        )}
+
         {/* Note */}
         <p className="text-center text-[12px] text-[var(--text-tertiary)] lowercase tracking-wide">
           {isPro
