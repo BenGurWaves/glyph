@@ -418,7 +418,7 @@ export function QRGenerator() {
         {qrDataUrl && (
           <div className="flex justify-center animate-in">
             <a
-              href="https://linkdrop.calyvent.com"
+              href="https://linkdrop.calyvent.com/dashboard/editor"
               target="_blank"
               className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] no-underline transition-colors lowercase mt-2 inline-block"
             >
