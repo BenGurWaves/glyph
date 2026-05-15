@@ -1,10 +1,11 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "glyph",
-  "main": ".open-next/worker.js",
   "compatibility_date": "2025-04-01",
   "compatibility_flags": ["nodejs_compat"],
-  "assets": {
-    "directory": ".open-next/assets"
+  "pages_build_output_dir": ".open-next",
+  "vars": {
+    "NEXT_PUBLIC_SUPABASE_URL": "https://ppihdyxsegcllrsscbnt.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBwaWhkeXhzZWdjbGxyc3NjYm50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NzQyMTcsImV4cCI6MjA5MDA1MDIxN30.OemEJGqC96iIQbNAwbWDdRreZpW6iHzt00U9PsD-wMY"
   }
 }
