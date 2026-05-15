@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 const COUPON_CODE = process.env.COUPON_CODE || "ben28gur28waves28";
@@ -10,11 +11,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Payment system not configured" }, { status: 500 });
     }
 
+    // Verify auth
+    const token = request.headers.get("authorization")?.replace("Bearer ", "");
+    if (!token) {
+      return NextResponse.json({ error: "Sign in required" }, { status: 401 });
+    }
+    const authSupabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
+      { global: { headers: { Authorization: `Bearer ${token}` } } }
+    );
+    const { data: { user } } = await authSupabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await request.json();
     const { email, coupon } = body;
 
     if (!email) {
       return NextResponse.json({ error: "Email is required" }, { status: 400 });
+    }
+
+    // Block if already Pro
+    const { data: existingSub } = await supabaseAdmin
+      .from("subscriptions")
+      .select("plan, status")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .single();
+    if (existingSub?.plan === "pro") {
+      return NextResponse.json({ error: "You already have an active Pro subscription." }, { status: 400 });
     }
 
     const isCouponValid = coupon && coupon.toLowerCase() === COUPON_CODE.toLowerCase();

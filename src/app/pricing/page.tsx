@@ -26,7 +26,18 @@ export default function PricingPage() {
           .eq("user_id", user.id)
           .eq("status", "active")
           .single();
-        setCurrentPlan(sub?.plan === "pro" ? "pro" : "free");
+
+        if (sub?.plan === "pro") {
+          setCurrentPlan("pro");
+        } else {
+          // Check coupon activations as fallback
+          const { data: coupon } = await supabase
+            .from("coupon_activations")
+            .select("email")
+            .eq("email", user.email?.toLowerCase() || "")
+            .single();
+          setCurrentPlan(coupon ? "pro" : "free");
+        }
       }
     });
   }, []);
@@ -36,12 +47,25 @@ export default function PricingPage() {
       setError("Enter your email to continue.");
       return;
     }
+
+    // Require sign-in before checkout
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setError("Please sign in first to continue with checkout.");
+      window.location.href = "/login?redirect=/pricing";
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
+    const { data: { session } } = await supabase.auth.getSession();
     const res = await fetch("/api/checkout", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session?.access_token || ""}`,
+      },
       body: JSON.stringify({ email, coupon: coupon.trim() || undefined }),
     });
 
@@ -225,38 +249,49 @@ export default function PricingPage() {
                 </div>
                 )}
 
-                {/* Alternative payments */}
-                <div className="flex flex-col gap-3 pt-4 border-t border-[#2a2a2a]">
-                  <span className="label text-[var(--text-on-dark-secondary)]">
-                    or pay with crypto
-                  </span>
-                  <p className="text-[11px] text-[var(--text-on-dark-secondary)]">
-                    bitcoin, ethereum, solana, and more via coinbase commerce
-                  </p>
-                  <button
-                    onClick={async () => {
-                      if (!email) { setError("Enter your email first."); return; }
-                      setLoading(true);
-                      setError(null);
-                      const res = await fetch("/api/checkout/crypto", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ email }),
-                      });
-                      const data = await res.json();
-                      if (data.url) {
-                        window.location.href = data.url;
-                      } else {
-                        setError(data.error || "Crypto checkout failed.");
-                        setLoading(false);
-                      }
-                    }}
-                    disabled={loading}
-                    className="keycap keycap-dark keycap-md disabled:opacity-50 w-full"
-                  >
-                    {loading ? "..." : "pay with crypto — $3"}
-                  </button>
-                </div>
+                {/* Alternative payments — only for non-Pro */}
+                {currentPlan !== "pro" && (
+                  <div className="flex flex-col gap-3 pt-4 border-t border-[#2a2a2a]">
+                    <span className="label text-[var(--text-on-dark-secondary)]">
+                      or pay with crypto
+                    </span>
+                    <p className="text-[11px] text-[var(--text-on-dark-secondary)]">
+                      bitcoin, ethereum, solana, and more via coinbase commerce
+                    </p>
+                    <button
+                      onClick={async () => {
+                        if (!email) { setError("Enter your email first."); return; }
+
+                        // Require sign-in before crypto checkout
+                        const { data: { user } } = await supabase.auth.getUser();
+                        if (!user) {
+                          setError("Please sign in first to continue with checkout.");
+                          window.location.href = "/login?redirect=/pricing";
+                          return;
+                        }
+
+                        setLoading(true);
+                        setError(null);
+                        const res = await fetch("/api/checkout/crypto", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ email }),
+                        });
+                        const data = await res.json();
+                        if (data.url) {
+                          window.location.href = data.url;
+                        } else {
+                          setError(data.error || "Crypto checkout failed.");
+                          setLoading(false);
+                        }
+                      }}
+                      disabled={loading}
+                      className="keycap keycap-dark keycap-md disabled:opacity-50 w-full"
+                    >
+                      {loading ? "..." : "pay with crypto — $3"}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 

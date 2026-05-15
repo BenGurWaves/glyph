@@ -11,6 +11,13 @@ type SubscriptionInfo = {
   plan: string;
   status: string;
   payment_method: string;
+  is_pro: boolean;
+  amount?: string;
+  interval?: string;
+  next_billing_date?: string;
+  start_date?: string;
+  card_brand?: string;
+  card_last4?: string;
 };
 
 export default function SettingsPage() {
@@ -29,12 +36,14 @@ export default function SettingsPage() {
       if (!user) { router.push("/login"); return; }
       setUser(user);
 
-      const { data: sub } = await supabase
-        .from("subscriptions")
-        .select("plan, status, payment_method")
-        .eq("user_id", user.id)
-        .single();
-      setSubscription(sub);
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch("/api/user/subscription", {
+        headers: { Authorization: `Bearer ${session?.access_token || ""}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSubscription(data);
+      }
       setLoading(false);
     });
   }, [router]);
@@ -113,13 +122,41 @@ export default function SettingsPage() {
                 <span className="text-[14px]">{user?.email}</span>
               </div>
               {subscription && (
-                <div className="flex flex-col gap-1">
-                  <span className="label">plan</span>
-                  <div className="flex items-center gap-2">
-                    <span className={`led ${subscription.status === "active" ? "led-active" : ""}`} />
-                    <span className="text-[14px] lowercase">{subscription.plan} · {subscription.status}</span>
+                <>
+                  <div className="flex flex-col gap-1">
+                    <span className="label">plan</span>
+                    <div className="flex items-center gap-2">
+                      <span className={`led ${subscription.status === "active" ? "led-active" : ""}`} />
+                      <span className="text-[14px] lowercase">{subscription.plan} · {subscription.status}</span>
+                    </div>
                   </div>
-                </div>
+                  {subscription.is_pro && (
+                    <div className="flex flex-col gap-2 mt-1">
+                      <div className="flex items-center gap-2">
+                        <span className="label">amount</span>
+                        <span className="text-[14px]">{subscription.amount || "$3"}/{subscription.interval || "month"}</span>
+                      </div>
+                      {subscription.start_date && (
+                        <div className="flex items-center gap-2">
+                          <span className="label">started</span>
+                          <span className="text-[14px]">{subscription.start_date}</span>
+                        </div>
+                      )}
+                      {subscription.next_billing_date && subscription.status === "active" && (
+                        <div className="flex items-center gap-2">
+                          <span className="label">next payment</span>
+                          <span className="text-[14px]">{subscription.next_billing_date}</span>
+                        </div>
+                      )}
+                      {subscription.card_brand && subscription.card_last4 && (
+                        <div className="flex items-center gap-2">
+                          <span className="label">payment method</span>
+                          <span className="text-[14px] capitalize">{subscription.card_brand} ···· {subscription.card_last4}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
@@ -132,7 +169,7 @@ export default function SettingsPage() {
               </div>
 
               {/* Cancel Subscription */}
-              {subscription && subscription.status === "active" && subscription.payment_method === "stripe" && (
+              {subscription && subscription.is_pro && subscription.status === "active" && subscription.payment_method === "stripe" && (
                 <div className="module p-5 flex flex-col gap-3">
                   <h2 className="text-[11px] font-medium text-[var(--text-tertiary)] uppercase tracking-[0.15em]">billing</h2>
                   <p className="text-[13px] text-[var(--text-secondary)]">
