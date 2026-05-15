@@ -4,7 +4,6 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET(request: NextRequest) {
   try {
-    // Verify auth
     const token = request.headers.get("authorization")?.replace("Bearer ", "");
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -20,48 +19,96 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get subscription from Supabase (admin bypasses RLS)
+    // Get subscription (admin bypasses RLS)
     const { data: sub } = await supabaseAdmin
       .from("subscriptions")
-      .select("plan, status, payment_method, payment_reference, created_at")
+      .select("plan, status, payment_method, payment_reference, started_at, expires_at")
       .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
+      .order("started_at", { ascending: false })
       .limit(1)
       .single();
 
-    // Check coupon activations as fallback for Pro status
+    // Check coupon activations as fallback
     const { data: coupon } = await supabaseAdmin
       .from("coupon_activations")
       .select("email, coupon_code, created_at")
       .eq("email", user.email?.toLowerCase() || "")
       .maybeSingle();
 
-    // Build response
+    const now = new Date();
+    let isPro = false;
+    let isTrial = false;
+    let isExpired = false;
+    let showWarning = false;
+    let daysUntilExpiry: number | null = null;
+    let expiresAt: string | null = null;
+
+    // Trial expiration check & auto-downgrade
+    if (sub?.plan === "pro" && sub?.status === "active") {
+      if (sub.expires_at) {
+        const expiry = new Date(sub.expires_at);
+        expiresAt = sub.expires_at;
+        daysUntilExpiry = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+        if (expiry < now) {
+          // Trial expired — downgrade to free
+          isExpired = true;
+          await supabaseAdmin
+            .from("subscriptions")
+            .update({ plan: "free", status: "expired", expires_at: null })
+            .eq("user_id", user.id);
+        } else {
+          isPro = true;
+          isTrial = sub.payment_method === "trial";
+          // Show warning 7 days before expiry
+          const warningDate = new Date(expiry.getTime() - 7 * 24 * 60 * 60 * 1000);
+          showWarning = now >= warningDate;
+        }
+      } else {
+        // No expiry = paid subscription or permanent coupon
+        isPro = true;
+        isTrial = false;
+      }
+    }
+
+    // Fallback: coupon activation gives permanent Pro
+    if (!isPro && coupon) {
+      isPro = true;
+    }
+
     const response: {
       plan: string;
       status: string;
       payment_method: string;
       is_pro: boolean;
+      is_trial: boolean;
+      is_expired: boolean;
+      show_warning: boolean;
+      days_until_expiry: number | null;
+      expires_at: string | null;
       amount?: string;
       interval?: string;
       next_billing_date?: string;
       start_date?: string;
-      payment_reference?: string;
       card_brand?: string;
       card_last4?: string;
     } = {
-      plan: sub?.plan || "free",
-      status: sub?.status || "inactive",
+      plan: isExpired ? "free" : (sub?.plan || "free"),
+      status: isExpired ? "expired" : (sub?.status || "inactive"),
       payment_method: sub?.payment_method || "none",
-      is_pro: (sub?.plan === "pro" && sub?.status === "active") || !!coupon,
+      is_pro: isPro,
+      is_trial: isTrial,
+      is_expired: isExpired,
+      show_warning: showWarning,
+      days_until_expiry: daysUntilExpiry,
+      expires_at: expiresAt,
     };
 
     // Enrich Stripe subscription with API details
-    if (sub?.payment_method === "stripe" && sub?.payment_reference) {
+    if (sub?.payment_method === "stripe" && sub?.payment_reference && !isExpired) {
       const stripeKey = process.env.STRIPE_SECRET_KEY;
       if (stripeKey) {
         try {
-          // Get subscription details
           const subRes = await fetch(
             `https://api.stripe.com/v1/subscriptions/${sub.payment_reference}`,
             { headers: { Authorization: `Bearer ${stripeKey}` } }
@@ -73,20 +120,15 @@ export async function GET(request: NextRequest) {
             response.interval = "month";
             response.next_billing_date = subData.current_period_end
               ? new Date(subData.current_period_end * 1000).toLocaleDateString("en-US", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
+                  year: "numeric", month: "long", day: "numeric",
                 })
               : undefined;
             response.start_date = subData.current_period_start
               ? new Date(subData.current_period_start * 1000).toLocaleDateString("en-US", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
+                  year: "numeric", month: "long", day: "numeric",
                 })
               : undefined;
 
-            // Get default payment method details
             if (subData.default_payment_method) {
               const pmRes = await fetch(
                 `https://api.stripe.com/v1/payment_methods/${subData.default_payment_method}`,
@@ -105,12 +147,18 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Fallback for coupon/crypto pro status
+    // Fallback for coupon/crypto
     if (!sub && coupon) {
       response.plan = "pro";
       response.status = "active";
       response.payment_method = "coupon";
       response.is_pro = true;
+      response.amount = "$3";
+      response.interval = "month";
+    }
+
+    // Trial fallback amounts
+    if (isTrial && !response.amount) {
       response.amount = "$3";
       response.interval = "month";
     }

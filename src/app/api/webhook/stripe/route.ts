@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
       if (userData && userData.length > 0) {
         const userId = userData[0].id;
 
-        // Create or update subscription
+        // Create or update subscription (clears expires_at for trial→paid conversion)
         const { error: subError } = await supabaseAdmin.from("subscriptions").upsert(
           {
             user_id: userId,
@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
             payment_method: "stripe",
             payment_reference: session.subscription || session.id,
             status: "active",
+            expires_at: null,
           },
           { onConflict: "user_id" }
         );

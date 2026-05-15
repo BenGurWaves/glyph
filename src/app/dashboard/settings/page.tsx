@@ -12,6 +12,11 @@ type SubscriptionInfo = {
   status: string;
   payment_method: string;
   is_pro: boolean;
+  is_trial: boolean;
+  is_expired: boolean;
+  show_warning: boolean;
+  days_until_expiry: number | null;
+  expires_at: string | null;
   amount?: string;
   interval?: string;
   next_billing_date?: string;
@@ -136,13 +141,28 @@ export default function SettingsPage() {
                         <span className="label">amount</span>
                         <span className="text-[14px]">{subscription.amount || "$3"}/{subscription.interval || "month"}</span>
                       </div>
-                      {subscription.start_date && (
+                      {subscription.is_trial && subscription.expires_at && (
+                        <div className="flex items-center gap-2">
+                          <span className="label">trial ends</span>
+                          <span className="text-[14px]">
+                            {new Date(subscription.expires_at).toLocaleDateString("en-US", {
+                              year: "numeric", month: "long", day: "numeric",
+                            })}
+                            {subscription.days_until_expiry !== null && (
+                              <span className="text-[var(--accent)] ml-1">
+                                ({subscription.days_until_expiry} day{subscription.days_until_expiry !== 1 ? "s" : ""} left)
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                      )}
+                      {!subscription.is_trial && subscription.start_date && (
                         <div className="flex items-center gap-2">
                           <span className="label">started</span>
                           <span className="text-[14px]">{subscription.start_date}</span>
                         </div>
                       )}
-                      {subscription.next_billing_date && subscription.status === "active" && (
+                      {subscription.next_billing_date && subscription.status === "active" && !subscription.is_trial && (
                         <div className="flex items-center gap-2">
                           <span className="label">next payment</span>
                           <span className="text-[14px]">{subscription.next_billing_date}</span>
@@ -167,6 +187,20 @@ export default function SettingsPage() {
                 <h2 className="text-[11px] font-medium text-[var(--text-tertiary)] uppercase tracking-[0.15em]">session</h2>
                 <button onClick={handleSignOut} className="keycap keycap-light keycap-sm self-start">sign out</button>
               </div>
+
+              {/* Add Payment Method — for trial users */}
+              {subscription && subscription.is_trial && subscription.show_warning && (
+                <div className="module p-5 flex flex-col gap-3 border border-[var(--accent)]/20">
+                  <h2 className="text-[11px] font-medium text-[var(--accent)] uppercase tracking-[0.15em]">keep your pro</h2>
+                  <p className="text-[13px] text-[var(--text-secondary)]">
+                    Your trial expires in <strong>{subscription.days_until_expiry} day{subscription.days_until_expiry !== 1 ? "s" : ""}</strong>.
+                    Add a payment method now to avoid losing Pro features.
+                  </p>
+                  <Link href="/pricing" className="keycap keycap-accent keycap-sm no-underline self-start">
+                    add payment method
+                  </Link>
+                </div>
+              )}
 
               {/* Cancel Subscription */}
               {subscription && subscription.is_pro && subscription.status === "active" && subscription.payment_method === "stripe" && (

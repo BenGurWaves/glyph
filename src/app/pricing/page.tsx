@@ -14,6 +14,8 @@ export default function PricingPage() {
   const [couponSuccess, setCouponSuccess] = useState(false);
   const [currentPlan, setCurrentPlan] = useState<"free" | "pro" | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [trialSuccess, setTrialSuccess] = useState(false);
+  const [trialExpiresAt, setTrialExpiresAt] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
@@ -70,8 +72,11 @@ export default function PricingPage() {
     });
 
     const data = await res.json();
-    if (data.free) {
-      // Coupon accepted — show success, no redirect to Stripe
+    if (data.trial) {
+      setTrialSuccess(true);
+      setTrialExpiresAt(data.expires_at);
+      setLoading(false);
+    } else if (data.free) {
       setCouponSuccess(true);
       setLoading(false);
     } else if (data.url) {
@@ -187,6 +192,24 @@ export default function PricingPage() {
                     </div>
                     <p className="text-[12px] text-[var(--text-on-dark-secondary)]">
                       billed monthly. manage your account in the dashboard.
+                    </p>
+                    <Link href="/dashboard" className="keycap keycap-accent keycap-lg no-underline text-center">
+                      go to dashboard
+                    </Link>
+                  </div>
+                ) : trialSuccess ? (
+                  <div className="flex flex-col gap-4 mt-4 pt-4 border-t border-[#2a2a2a] animate-in">
+                    <div className="flex items-center gap-3">
+                      <span className="led led-active" />
+                      <span className="text-[16px] font-medium">pro trial activated</span>
+                    </div>
+                    <p className="text-[13px] text-[var(--text-on-dark-secondary)]">
+                      Your 6-month free trial is active until{" "}
+                      {trialExpiresAt
+                        ? new Date(trialExpiresAt).toLocaleDateString("en-US", {
+                            year: "numeric", month: "long", day: "numeric",
+                          })
+                        : ""}.
                     </p>
                     <Link href="/dashboard" className="keycap keycap-accent keycap-lg no-underline text-center">
                       go to dashboard

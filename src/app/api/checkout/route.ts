@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 const COUPON_CODE = process.env.COUPON_CODE || "ben28gur28waves28";
+const TRIAL_COUPON_CODE = process.env.TRIAL_COUPON_CODE || "KillerIceCream100";
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,53 +34,66 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
 
-    // Block if already Pro
+    // Block if already Pro (active or trial)
     const { data: existingSub } = await supabaseAdmin
       .from("subscriptions")
-      .select("plan, status")
+      .select("plan, status, expires_at")
       .eq("user_id", user.id)
-      .eq("status", "active")
+      .order("started_at", { ascending: false })
+      .limit(1)
       .single();
+
+    const now = new Date();
     if (existingSub?.plan === "pro") {
-      return NextResponse.json({ error: "You already have an active Pro subscription." }, { status: 400 });
+      const isActiveTrial = existingSub.expires_at && new Date(existingSub.expires_at) > now;
+      const isActivePaid = !existingSub.expires_at && existingSub.status === "active";
+      if (isActiveTrial || isActivePaid) {
+        return NextResponse.json({ error: "You already have an active Pro subscription." }, { status: 400 });
+      }
     }
 
     const isCouponValid = coupon && coupon.toLowerCase() === COUPON_CODE.toLowerCase();
+    const isTrialCoupon = coupon && coupon.toLowerCase() === TRIAL_COUPON_CODE.toLowerCase();
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://glyph.calyvent.com";
 
+    if (isTrialCoupon) {
+      // 6-month free trial
+      const sixMonthsFromNow = new Date();
+      sixMonthsFromNow.setMonth(sixMonthsFromNow.getMonth() + 6);
+
+      await supabaseAdmin.from("subscriptions").upsert(
+        {
+          user_id: user.id,
+          plan: "pro",
+          payment_method: "trial",
+          payment_reference: coupon,
+          status: "active",
+          started_at: new Date().toISOString(),
+          expires_at: sixMonthsFromNow.toISOString(),
+        },
+        { onConflict: "user_id" }
+      );
+
+      return NextResponse.json({ trial: true, expires_at: sixMonthsFromNow.toISOString() });
+    }
+
     if (isCouponValid) {
-      // Store coupon activation by email
+      // Store permanent coupon activation by email
       await supabaseAdmin.from("coupon_activations").upsert(
         { email: email.toLowerCase(), coupon_code: coupon },
         { onConflict: "email" }
       );
 
-      // If user already exists, activate Pro subscription directly
-      const { data: userData, error: userError } = await supabaseAdmin.rpc("get_user_id_by_email", {
-        user_email: email.toLowerCase(),
-      });
-
-      if (userError) {
-        console.error("[Checkout] get_user_id_by_email error:", userError.message);
-      }
-
-      if (userData && userData.length > 0) {
-        const userId = userData[0].id;
-        const { error: subError } = await supabaseAdmin.from("subscriptions").upsert(
-          {
-            user_id: userId,
-            plan: "pro",
-            payment_method: "coupon",
-            payment_reference: coupon,
-            status: "active",
-          },
-          { onConflict: "user_id" }
-        );
-
-        if (subError) {
-          console.error("[Checkout] subscription upsert error:", subError.message);
-        }
-      }
+      await supabaseAdmin.from("subscriptions").upsert(
+        {
+          user_id: user.id,
+          plan: "pro",
+          payment_method: "coupon",
+          payment_reference: coupon,
+          status: "active",
+        },
+        { onConflict: "user_id" }
+      );
 
       return NextResponse.json({ free: true });
     }

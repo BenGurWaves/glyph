@@ -75,6 +75,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const [isPro, setIsPro] = useState(false);
+  const [trialWarning, setTrialWarning] = useState(false);
+  const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editFg, setEditFg] = useState("#1A1A1A");
   const [editBg, setEditBg] = useState("#FFFFFF");
@@ -118,27 +120,18 @@ export default function DashboardPage() {
       if (!user) { router.push("/login"); return; }
       setUser(user);
 
-      const { data: sub } = await supabase
-        .from("subscriptions")
-        .select("plan")
-        .eq("user_id", user.id)
-        .eq("status", "active")
-        .single();
-      let pro = sub?.plan === "pro";
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch("/api/user/subscription", {
+        headers: { Authorization: `Bearer ${session?.access_token || ""}` },
+      });
 
-      if (!pro && user.email) {
-        const { data: couponData } = await supabase
-          .from("coupon_activations")
-          .select("email")
-          .eq("email", user.email.toLowerCase())
-          .single();
-
-        if (couponData) {
-          await supabase.from("subscriptions").upsert(
-            { user_id: user.id, plan: "pro", payment_method: "coupon", status: "active" },
-            { onConflict: "user_id" }
-          );
-          pro = true;
+      let pro = false;
+      if (res.ok) {
+        const subData = await res.json();
+        pro = subData.is_pro;
+        if (subData.show_warning) {
+          setTrialWarning(true);
+          setTrialDaysLeft(subData.days_until_expiry);
         }
       }
       setIsPro(pro);
@@ -254,6 +247,19 @@ export default function DashboardPage() {
               <div className="flex gap-3">
                 <Link href="/dashboard/bulk" className="keycap keycap-light keycap-sm no-underline">bulk generate</Link>
                 <Link href="/dashboard/api-keys" className="keycap keycap-light keycap-sm no-underline">api keys</Link>
+              </div>
+            )}
+
+            {/* Trial warning */}
+            {trialWarning && (
+              <div className="module p-4 border-l-2 border-[var(--accent)] flex flex-col gap-2">
+                <p className="text-[13px] text-[var(--text-primary)]">
+                  Your Pro trial expires in <strong>{trialDaysLeft} day{trialDaysLeft !== 1 ? "s" : ""}</strong>.
+                  Add a payment method to keep Pro features.
+                </p>
+                <Link href="/pricing" className="keycap keycap-accent keycap-sm no-underline self-start">
+                  add payment method
+                </Link>
               </div>
             )}
 
