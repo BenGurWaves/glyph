@@ -14,6 +14,12 @@ export const supabase = createClient(
   supabaseAnonKey || "missing"
 );
 
+export type StyleConfig = {
+  fgColor?: string;
+  bgColor?: string;
+  logo?: string;
+};
+
 export type QRCode = {
   id: string;
   user_id: string | null;
@@ -21,7 +27,7 @@ export type QRCode = {
   destination_url: string;
   title: string | null;
   qr_type: "static" | "dynamic";
-  style_config: Record<string, unknown>;
+  style_config: StyleConfig;
   created_at: string;
   updated_at: string;
 };
