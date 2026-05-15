@@ -44,9 +44,9 @@ export default function ApiKeysPage() {
 
       const { data: sub } = await supabase
         .from("subscriptions")
-        .select("plan")
+        .select("plan, status")
         .eq("user_id", user.id)
-        .eq("status", "active")
+        .in("status", ["active", "pending_cancellation"])
         .maybeSingle();
       let isProUser = sub?.plan === "pro";
 
@@ -59,7 +59,7 @@ export default function ApiKeysPage() {
 
         if (couponData) {
           await supabase.from("subscriptions").upsert(
-            { user_id: user.id, plan: "pro", payment_method: "coupon", status: "active" },
+            { user_id: user.id, plan: "pro", payment_method: "coupon", status: "active", expires_at: null },
             { onConflict: "user_id" }
           );
           isProUser = true;

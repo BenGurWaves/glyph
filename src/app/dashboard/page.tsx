@@ -143,7 +143,11 @@ export default function DashboardPage() {
   }, [router, loadQrCodes]);
 
   const handleDelete = async (id: string) => {
-    await supabase.from("qr_codes").delete().eq("id", id);
+    const { error } = await supabase.from("qr_codes").delete().eq("id", id).eq("user_id", user?.id);
+    if (error) {
+      console.error("[Dashboard] delete error:", error.message);
+      return;
+    }
     setQrCodes((prev) => prev.filter((qr) => qr.id !== id));
   };
 
@@ -186,9 +190,16 @@ export default function DashboardPage() {
       updatePayload.destination_url = editUrl;
     }
 
-    await supabase.from("qr_codes")
+    const { error: updateError } = await supabase.from("qr_codes")
       .update(updatePayload)
-      .eq("id", qr.id);
+      .eq("id", qr.id)
+      .eq("user_id", user?.id);
+
+    if (updateError) {
+      console.error("[Dashboard] saveEdit error:", updateError.message);
+      setSaving(false);
+      return;
+    }
 
     // Re-render QR
     const updated = {

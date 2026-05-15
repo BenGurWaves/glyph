@@ -72,7 +72,7 @@ export default function SettingsPage() {
 
     if (res.ok) {
       setMessage("Subscription cancelled. You will retain Pro access until the end of your billing period.");
-      setSubscription((prev) => prev ? { ...prev, status: "cancelled" } : prev);
+      setSubscription((prev) => prev ? { ...prev, status: "pending_cancellation" } : prev);
     } else {
       setError(data.error || "Failed to cancel subscription.");
     }

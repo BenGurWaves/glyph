@@ -121,7 +121,7 @@ export default function ScanPage() {
                 <div className="flex gap-3">
                   {isUrl && (
                     <a
-                      href={result}
+                      href={result && /^https?:\/\//i.test(result) ? result : "#"}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="keycap keycap-accent keycap-md no-underline"

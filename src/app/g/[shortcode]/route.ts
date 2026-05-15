@@ -55,15 +55,19 @@ export async function GET(
       null;
     const referrer = request.headers.get("referer") || null;
 
-    await supabaseAdmin.from("scans").insert({
-      qr_code_id: qr.id,
-      country,
-      city,
-      device,
-      browser,
-      os,
-      referrer,
-    });
+    try {
+      await supabaseAdmin.from("scans").insert({
+        qr_code_id: qr.id,
+        country,
+        city,
+        device,
+        browser,
+        os,
+        referrer,
+      });
+    } catch (scanErr) {
+      console.error("[QR redirect] scan log error:", scanErr);
+    }
   }
 
   // Ensure URL has protocol (only for URLs that look like web addresses)

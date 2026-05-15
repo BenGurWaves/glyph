@@ -123,9 +123,9 @@ export default function PricingPage() {
                 </div>
                 <ul className="flex flex-col gap-3 text-[13px] text-[var(--text-secondary)]">
                   {[
-                    "5 qr generations per day",
+                    "20 qr generations per day",
                     "camera qr scanner",
-                    "3 dynamic (trackable) codes",
+                    "unlimited static codes",
                     "png download",
                     "no signup required",
                   ].map((item) => (

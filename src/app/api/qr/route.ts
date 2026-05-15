@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
   let short_code = generateShortCode();
   let attempts = 0;
   while (attempts < 10) {
-    const { data: existing } = await supabaseAdmin.from("qr_codes").select("id").eq("short_code", short_code).single();
+    const { data: existing } = await supabaseAdmin.from("qr_codes").select("id").eq("short_code", short_code).maybeSingle();
     if (!existing) break;
     short_code = generateShortCode();
     attempts++;

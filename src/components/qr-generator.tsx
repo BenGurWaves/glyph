@@ -77,7 +77,7 @@ export function QRGenerator() {
           .from("subscriptions")
           .select("plan, status")
           .eq("user_id", user.id)
-          .eq("status", "active")
+          .in("status", ["active", "pending_cancellation"])
           .maybeSingle();
 
         if (sub && sub.plan === "pro") {
