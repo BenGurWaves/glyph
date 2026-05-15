@@ -7,7 +7,7 @@ function MaintenanceBanner() {
   return (
     <div className="shrink-0 bg-amber-500 text-[#1A1A1A] text-center py-1.5 px-4 animate-pulse">
       <p className="text-[11px] font-semibold tracking-wide uppercase">
-        website is currently being updated — if you see errors, please come back in 24–48 hours
+        We are currently updating Glyph. We apologize for any inconvenience — please check back in 24 to 48 hours.
       </p>
     </div>
   );
