@@ -5,8 +5,8 @@ const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
 function createAdminClient() {
   if (!supabaseUrl || !serviceRoleKey) {
-    console.warn("SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_URL not set. Admin client will fail at runtime.");
-    return createClient("http://placeholder", "placeholder") as ReturnType<typeof createClient>;
+    console.error("SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_URL not set. Admin client will fail at runtime.");
+    return createClient("https://localhost", "placeholder") as ReturnType<typeof createClient>;
   }
   return createClient(supabaseUrl, serviceRoleKey);
 }
