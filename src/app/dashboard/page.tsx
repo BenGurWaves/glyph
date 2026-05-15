@@ -149,11 +149,6 @@ export default function DashboardPage() {
     init();
   }, [router, loadQrCodes]);
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push("/");
-  };
-
   const handleDelete = async (id: string) => {
     await supabase.from("qr_codes").delete().eq("id", id);
     setQrCodes((prev) => prev.filter((qr) => qr.id !== id));
@@ -251,10 +246,7 @@ export default function DashboardPage() {
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Link href="/dashboard/settings" className="keycap keycap-light keycap-sm no-underline">settings</Link>
-                <button onClick={handleSignOut} className="keycap keycap-light keycap-sm">sign out</button>
-              </div>
+              <Link href="/dashboard/settings" className="keycap keycap-light keycap-sm no-underline">settings</Link>
             </div>
 
             {/* Pro tools */}
