@@ -29,7 +29,7 @@ export default function QRDetailPage() {
         .select("*")
         .eq("id", id)
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
       if (!qrData) {
         router.push("/dashboard");

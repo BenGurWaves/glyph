@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     let expiresAt: string | null = null;
 
     // Trial expiration check & auto-downgrade
-    if (sub?.plan === "pro" && sub?.status === "active") {
+    if (sub?.plan === "pro" && (sub?.status === "active" || sub?.status === "pending_cancellation")) {
       if (sub.expires_at) {
         const expiry = new Date(sub.expires_at);
         expiresAt = sub.expires_at;

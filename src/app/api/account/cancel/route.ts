@@ -57,10 +57,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: result.error?.message || "Stripe error" }, { status: 500 });
     }
 
-    // Do NOT set status to "cancelled" here — Stripe keeps the subscription active
-    // until the billing period ends. The webhook "customer.subscription.deleted"
-    // will fire then and update the status. This ensures the user keeps Pro access
-    // for the time they already paid for.
+    // Mark as pending_cancellation so the UI knows the user initiated cancellation.
+    // Stripe keeps the subscription active until the billing period ends.
+    // The webhook "customer.subscription.deleted" will fire then and update
+    // the status to "cancelled". The "customer.subscription.updated" webhook
+    // also syncs cancel_at_period_end to pending_cancellation as a backup.
+    await supabaseAdmin
+      .from("subscriptions")
+      .update({ status: "pending_cancellation" })
+      .eq("user_id", user.id)
+      .eq("payment_method", "stripe");
 
     // Send cancellation email
     const endDate = result.current_period_end

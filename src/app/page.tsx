@@ -260,7 +260,7 @@ export default function Home() {
             {[
               {
                 q: "How many QR codes can I make for free?",
-                a: "5 per day, forever. No email required, no signup wall. If you need more, Pro gives you unlimited for $3/month.",
+                a: "20 per day, forever. No email required, no signup wall. If you need more, Pro gives you unlimited for $3/month.",
               },
               {
                 q: "What is a dynamic QR code?",

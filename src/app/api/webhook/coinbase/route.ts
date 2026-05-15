@@ -2,9 +2,37 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { sendEmail, buildProWelcomeEmail } from "@/lib/email";
 
+async function hmacSha256(secret: string, message: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw", encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false, ["sign"]
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, encoder.encode(message));
+  return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const payload = await request.text();
+    const signature = request.headers.get("x-cc-webhook-signature");
+    const secret = process.env.COINBASE_COMMERCE_WEBHOOK_SECRET;
+    if (!secret) {
+      console.error("[Coinbase webhook] COINBASE_COMMERCE_WEBHOOK_SECRET not set");
+      return NextResponse.json({ error: "Webhook secret not configured" }, { status: 500 });
+    }
+    if (!signature) {
+      console.error("[Coinbase webhook] Missing signature");
+      return NextResponse.json({ error: "Missing signature" }, { status: 401 });
+    }
+    const expected = await hmacSha256(secret, payload);
+    if (signature !== expected) {
+      console.error("[Coinbase webhook] Invalid signature");
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+    }
+
+    const body = JSON.parse(payload);
     const event = body.event;
 
     if (!event) {
@@ -36,7 +64,7 @@ export async function POST(request: NextRequest) {
     if (userData && userData.length > 0) {
       const userId = userData[0].id;
 
-      // Activate Pro subscription
+      // Activate Pro subscription (clear expires_at to convert trial→paid)
       const { error: subError } = await supabaseAdmin.from("subscriptions").upsert(
         {
           user_id: userId,
@@ -44,6 +72,7 @@ export async function POST(request: NextRequest) {
           payment_method: "crypto",
           payment_reference: `coinbase:${event.data.code}`,
           status: "active",
+          expires_at: null,
         },
         { onConflict: "user_id" }
       );

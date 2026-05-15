@@ -24,7 +24,7 @@ export default function LoginPage() {
 
     if (couponData) {
       await supabase.from("subscriptions").upsert(
-        { user_id: userId, plan: "pro", payment_method: "coupon", status: "active" },
+        { user_id: userId, plan: "pro", payment_method: "coupon", status: "active", expires_at: null },
         { onConflict: "user_id" }
       );
     }

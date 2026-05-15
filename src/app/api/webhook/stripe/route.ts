@@ -2,10 +2,45 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { sendEmail, buildProWelcomeEmail, buildReceiptEmail } from "@/lib/email";
 
+async function hmacSha256(secret: string, message: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw", encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false, ["sign"]
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, encoder.encode(message));
+  return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function verifyStripeSignature(payload: string, signature: string, secret: string): Promise<boolean> {
+  const elements = signature.split(",");
+  let timestamp = "";
+  const sigs = new Map<string, string>();
+  for (const element of elements) {
+    const [key, value] = element.trim().split("=");
+    if (key === "t") timestamp = value;
+    else if (key) sigs.set(key, value);
+  }
+  const expected = await hmacSha256(secret, `${timestamp}.${payload}`);
+  return sigs.get("v1") === expected;
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.text();
-    const event = JSON.parse(body);
+    const payload = await request.text();
+    const signature = request.headers.get("stripe-signature");
+    const secret = process.env.STRIPE_WEBHOOK_SECRET;
+    if (!secret) {
+      console.error("[Stripe webhook] STRIPE_WEBHOOK_SECRET not set");
+      return NextResponse.json({ error: "Webhook secret not configured" }, { status: 500 });
+    }
+    if (!signature || !(await verifyStripeSignature(payload, signature, secret))) {
+      console.error("[Stripe webhook] Invalid signature");
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+    }
+
+    const event = JSON.parse(payload);
 
     // Handle checkout.session.completed
     if (event.type === "checkout.session.completed") {
@@ -81,6 +116,18 @@ export async function POST(request: NextRequest) {
 
       if (cancelError) {
         console.error("[Stripe webhook] cancellation error:", cancelError.message);
+      }
+    }
+
+    // Handle customer.subscription.updated (track pending cancellation)
+    if (event.type === "customer.subscription.updated") {
+      const subscription = event.data.object;
+      if (subscription.cancel_at_period_end) {
+        await supabaseAdmin
+          .from("subscriptions")
+          .update({ status: "pending_cancellation" })
+          .eq("payment_reference", subscription.id)
+          .eq("status", "active");
       }
     }
 

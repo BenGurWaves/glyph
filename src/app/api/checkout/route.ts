@@ -43,14 +43,16 @@ export async function POST(request: NextRequest) {
       .limit(1)
       .single();
 
-    const now = new Date();
-    if (existingSub?.plan === "pro") {
-      const isActivePaid = !existingSub.expires_at && existingSub.status === "active";
-      if (isActivePaid) {
+    const hasActivePro = existingSub?.plan === "pro" &&
+      (existingSub.status === "active" || existingSub.status === "pending_cancellation");
+
+    if (hasActivePro) {
+      const isTrial = !!existingSub.expires_at;
+      const isPaying = !coupon || (coupon.toLowerCase() !== COUPON_CODE.toLowerCase() && coupon.toLowerCase() !== TRIAL_COUPON_CODE.toLowerCase());
+      // Only allow trial users to proceed to Stripe checkout; block everything else
+      if (!isTrial || !isPaying) {
         return NextResponse.json({ error: "You already have an active Pro subscription." }, { status: 400 });
       }
-      // Trial users can proceed to add a payment method — the Stripe webhook will
-      // clear expires_at when payment converts trial to paid.
     }
 
     const isCouponValid = coupon && coupon.toLowerCase() === COUPON_CODE.toLowerCase();
@@ -92,6 +94,7 @@ export async function POST(request: NextRequest) {
           payment_method: "coupon",
           payment_reference: coupon,
           status: "active",
+          expires_at: null,
         },
         { onConflict: "user_id" }
       );

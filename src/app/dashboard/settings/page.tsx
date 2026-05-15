@@ -131,8 +131,10 @@ export default function SettingsPage() {
                   <div className="flex flex-col gap-1">
                     <span className="label">plan</span>
                     <div className="flex items-center gap-2">
-                      <span className={`led ${subscription.status === "active" ? "led-active" : ""}`} />
-                      <span className="text-[14px] lowercase">{subscription.plan} · {subscription.status}</span>
+                      <span className={`led ${subscription.status === "active" || subscription.status === "pending_cancellation" ? "led-active" : ""}`} />
+                      <span className="text-[14px] lowercase">
+                        {subscription.plan} · {subscription.status === "pending_cancellation" ? "cancelling" : subscription.status}
+                      </span>
                     </div>
                   </div>
                   {subscription.is_pro && (

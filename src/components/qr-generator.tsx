@@ -6,7 +6,7 @@ import { generateQRWithLogo } from "@/lib/qr-with-logo";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 
-const DAILY_LIMIT = 5;
+const DAILY_LIMIT = 20;
 const STORAGE_KEY = "glyph_daily_gen";
 const AUTO_SAVE_DELAY = 3000;
 
@@ -115,7 +115,14 @@ export function QRGenerator() {
 
     const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
     let shortCode = "";
-    for (let i = 0; i < 7; i++) shortCode += chars[Math.floor(Math.random() * chars.length)];
+    let collisionAttempts = 0;
+    while (collisionAttempts < 10) {
+      shortCode = "";
+      for (let i = 0; i < 7; i++) shortCode += chars[Math.floor(Math.random() * chars.length)];
+      const { data: existing } = await supabase.from("qr_codes").select("id").eq("short_code", shortCode).maybeSingle();
+      if (!existing) break;
+      collisionAttempts++;
+    }
 
     let title = destUrl;
     try { title = new URL(destUrl).hostname; } catch { /* use full url */ }

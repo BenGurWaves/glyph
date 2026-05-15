@@ -93,7 +93,7 @@ const faqJsonLd = JSON.stringify({
       name: "How many QR codes can I make for free?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "5 per day, forever. No email required, no signup wall. If you need more, Pro gives you unlimited for $3/month.",
+        text: "20 per day, forever. No email required, no signup wall. If you need more, Pro gives you unlimited for $3/month.",
       },
     },
     {
