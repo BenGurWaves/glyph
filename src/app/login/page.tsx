@@ -30,6 +30,13 @@ export default function LoginPage() {
     }
   };
 
+  const friendlyError = (msg: string) => {
+    if (msg.includes("fetch") || msg.includes("network") || msg.includes("connection")) {
+      return "Unable to connect. Please check your internet and try again.";
+    }
+    return msg;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -44,7 +51,7 @@ export default function LoginPage() {
           options: { emailRedirectTo: "https://glyph.calyvent.com/dashboard" },
         });
         if (error) {
-          setError(error.message);
+          setError(friendlyError(error.message));
         } else if (data.user) {
           // Go straight to dashboard (disable email confirmation in Supabase Auth settings)
           await syncCouponActivation(data.user.email!, data.user.id);
@@ -53,13 +60,13 @@ export default function LoginPage() {
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
-          setError(error.message);
+          setError(friendlyError(error.message));
         } else if (data.user) {
           await syncCouponActivation(data.user.email!, data.user.id);
           router.push("/dashboard");
         }
       }
-    } catch (err) {
+    } catch {
       setError("Unable to connect. Please check your internet and try again.");
     }
 
