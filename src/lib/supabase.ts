@@ -1,16 +1,29 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+let _client: SupabaseClient | null = null;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn("NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY not set.");
+function getClient(): SupabaseClient {
+  if (!_client) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+    if (!url || !key) {
+      console.warn("NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY not set.");
+    }
+    _client = createClient(url || "http://placeholder", key || "placeholder");
+  }
+  return _client;
 }
 
-export const supabase = createClient(
-  supabaseUrl || "http://placeholder",
-  supabaseAnonKey || "placeholder"
-);
+// Lazy proxy — client is only created when actually used, not during static generation
+export const supabase = new Proxy({} as SupabaseClient, {
+  get(_, prop: string | symbol) {
+    const value = (getClient() as any)[prop];
+    if (typeof value === "function") {
+      return value.bind(getClient());
+    }
+    return value;
+  },
+}) as SupabaseClient;
 
 export type QRCode = {
   id: string;
