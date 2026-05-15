@@ -176,7 +176,7 @@ export default function Home() {
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="led led-active" />
-                  3 dynamic (trackable) codes
+                  unlimited static codes
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="led" />
@@ -260,7 +260,7 @@ export default function Home() {
             {[
               {
                 q: "How many QR codes can I make for free?",
-                a: "20 per day, forever. No email required, no signup wall. If you need more, Pro gives you unlimited for $3/month.",
+                a: "5 per day, forever. No email required, no signup wall. If you need more, Pro gives you unlimited for $3/month.",
               },
               {
                 q: "What is a dynamic QR code?",

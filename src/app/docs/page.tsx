@@ -126,7 +126,7 @@ export default function DocsPage() {
                 <p className="text-[12px] text-[var(--text-tertiary)]">
                   Analytics are available in the dashboard for each dynamic
                   code. Pro subscribers see full history; free users can view
-                  analytics for their 3 dynamic codes.
+                  analytics for their dynamic codes.
                 </p>
               </div>
             </div>
@@ -289,7 +289,7 @@ Authorization: Bearer YOUR_API_KEY
                     <span className="led led-active" />5 QR code generations per day
                   </li>
                   <li className="flex items-center gap-2">
-                    <span className="led led-active" />3 dynamic (trackable) codes
+                    <span className="led led-active" />unlimited static codes
                   </li>
                   <li className="flex items-center gap-2">
                     <span className="led led-active" />Camera scanner

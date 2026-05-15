@@ -85,6 +85,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="hw-input"
+                  autoComplete="email"
                   required
                 />
               </div>
@@ -95,6 +96,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="hw-input"
+                  autoComplete={isSignUp ? "new-password" : "current-password"}
                   minLength={6}
                   required
                 />

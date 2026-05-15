@@ -123,7 +123,7 @@ export default function PricingPage() {
                 </div>
                 <ul className="flex flex-col gap-3 text-[13px] text-[var(--text-secondary)]">
                   {[
-                    "20 qr generations per day",
+                    "5 qr generations per day",
                     "camera qr scanner",
                     "unlimited static codes",
                     "png download",

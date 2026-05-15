@@ -36,7 +36,7 @@ export default function TermsPage() {
 
               <section>
                 <h2 className="text-[13px] font-medium text-[var(--text-primary)] uppercase tracking-[0.1em] mb-3">4. free tier</h2>
-                <p>The free tier allows up to 20 QR code generations per day, access to the camera scanner, and up to 3 dynamic (trackable) QR codes. Free-tier usage does not require an account. Glyph reserves the right to modify free-tier limits at any time.</p>
+                <p>The free tier allows up to 5 QR code generations per day, access to the camera scanner, and unlimited static QR codes. Free-tier usage does not require an account. Glyph reserves the right to modify free-tier limits at any time.</p>
               </section>
 
               <section>

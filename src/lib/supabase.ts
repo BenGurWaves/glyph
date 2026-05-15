@@ -4,10 +4,15 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn("[supabase] NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY not set. Supabase client unavailable.");
+  console.error("[supabase] NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY not set. Supabase client unavailable.");
 }
 
-export const supabase = createClient(supabaseUrl || "http://placeholder", supabaseAnonKey || "placeholder");
+// Use https://localhost as safe fallback to avoid mixed-content errors in production.
+// In production these env vars MUST be set during build for the client to work.
+export const supabase = createClient(
+  supabaseUrl || "https://localhost",
+  supabaseAnonKey || "missing"
+);
 
 export type QRCode = {
   id: string;
