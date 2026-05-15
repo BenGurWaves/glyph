@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { sendEmail, buildProWelcomeEmail, buildReceiptEmail } from "@/lib/email";
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,6 +48,17 @@ export async function POST(request: NextRequest) {
             { email: email.toLowerCase(), coupon_code: `stripe:${session.id}` },
             { onConflict: "email" }
           );
+        } else {
+          // Send welcome + receipt email
+          const now = new Date().toLocaleDateString("en-US", {
+            year: "numeric", month: "long", day: "numeric",
+          });
+          try {
+            await sendEmail(buildProWelcomeEmail(email));
+            await sendEmail(buildReceiptEmail(email, "$3.00", now));
+          } catch (emailErr) {
+            console.error("[Stripe webhook] email error:", emailErr);
+          }
         }
       } else {
         // User hasn't signed up yet — store as coupon activation

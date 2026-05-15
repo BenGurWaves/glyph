@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { sendEmail, buildCancellationEmail } from "@/lib/email";
 
 export async function POST(request: NextRequest) {
   try {
@@ -61,6 +62,20 @@ export async function POST(request: NextRequest) {
       .from("subscriptions")
       .update({ status: "cancelled" })
       .eq("user_id", user.id);
+
+    // Send cancellation email
+    const endDate = result.current_period_end
+      ? new Date(result.current_period_end * 1000).toLocaleDateString("en-US", {
+          year: "numeric", month: "long", day: "numeric",
+        })
+      : "the end of your billing period";
+    try {
+      if (user.email) {
+        await sendEmail(buildCancellationEmail(user.email, endDate));
+      }
+    } catch (emailErr) {
+      console.error("[Cancel] email error:", emailErr);
+    }
 
     return NextResponse.json({ success: true });
   } catch (err) {

@@ -44,15 +44,10 @@ export default function LoginPage() {
       });
       if (error) {
         setError(error.message);
-      } else if (data.session) {
-        // Auto-confirmed — go straight to dashboard
-        if (data.user) {
-          await syncCouponActivation(data.user.email!, data.user.id);
-        }
+      } else if (data.user) {
+        // Go straight to dashboard (disable email confirmation in Supabase Auth settings)
+        await syncCouponActivation(data.user.email!, data.user.id);
         router.push("/dashboard");
-      } else {
-        // Email confirmation required
-        setMessage("Check your email for a confirmation link.");
       }
     } else {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });

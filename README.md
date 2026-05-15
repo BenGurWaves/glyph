@@ -22,6 +22,8 @@ npm run dev
 | `COINBASE_COMMERCE_API_KEY` | Coinbase Commerce API key | `.env.local`, Cloudflare secrets |
 | `NEXT_PUBLIC_APP_URL` | Your app URL (`https://glyph.calyvent.com`) | `.env.local` |
 | `COUPON_CODE` | Free Pro coupon code | `.env.local`, Cloudflare secrets |
+| `TRIAL_COUPON_CODE` | 6-month trial coupon (default: `KillerIceCream100`) | `.env.local`, Cloudflare secrets |
+| `RESEND_API_KEY` | Resend API key for payment emails | `.env.local`, Cloudflare secrets |
 
 **Important:** `SUPABASE_SERVICE_ROLE_KEY` is required for all server-side API routes to bypass Row Level Security (RLS) on `subscriptions`, `qr_codes`, `scans`, `api_keys`, and `coupon_activations`.
 

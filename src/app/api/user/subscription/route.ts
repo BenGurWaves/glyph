@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { sendEmail, buildPaymentDueEmail } from "@/lib/email";
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest) {
     // Get subscription (admin bypasses RLS)
     const { data: sub } = await supabaseAdmin
       .from("subscriptions")
-      .select("plan, status, payment_method, payment_reference, started_at, expires_at")
+      .select("plan, status, payment_method, payment_reference, started_at, expires_at, reminder_sent_at")
       .eq("user_id", user.id)
       .order("started_at", { ascending: false })
       .limit(1)
@@ -63,6 +64,27 @@ export async function GET(request: NextRequest) {
           // Show warning 7 days before expiry
           const warningDate = new Date(expiry.getTime() - 7 * 24 * 60 * 60 * 1000);
           showWarning = now >= warningDate;
+
+          // Send payment due email once per day during warning period
+          if (showWarning && isTrial && user.email) {
+            const lastSent = sub.reminder_sent_at ? new Date(sub.reminder_sent_at) : null;
+            const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            if (!lastSent || lastSent < oneDayAgo) {
+              try {
+                await sendEmail(buildPaymentDueEmail(
+                  user.email,
+                  daysUntilExpiry,
+                  expiry.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+                ));
+                await supabaseAdmin
+                  .from("subscriptions")
+                  .update({ reminder_sent_at: now.toISOString() })
+                  .eq("user_id", user.id);
+              } catch (emailErr) {
+                console.error("[Subscription] reminder email error:", emailErr);
+              }
+            }
+          }
         }
       } else {
         // No expiry = paid subscription or permanent coupon
