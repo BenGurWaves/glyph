@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
       .eq("user_id", user.id)
       .order("started_at", { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     // Check coupon activations as fallback
     const { data: coupon } = await supabaseAdmin

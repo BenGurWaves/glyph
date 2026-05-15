@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
       .from("api_keys")
       .select("user_id")
       .eq("key_hash", keyHash)
-      .single();
+      .maybeSingle();
 
     if (!keyRow) {
       return NextResponse.json({ error: "Invalid API key" }, { status: 401 });

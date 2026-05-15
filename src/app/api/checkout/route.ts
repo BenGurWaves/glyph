@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       .eq("user_id", user.id)
       .order("started_at", { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     const hasActivePro = existingSub?.plan === "pro" &&
       (existingSub.status === "active" || existingSub.status === "pending_cancellation");

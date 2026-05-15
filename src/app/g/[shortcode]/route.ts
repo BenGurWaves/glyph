@@ -34,7 +34,7 @@ export async function GET(
     .from("qr_codes")
     .select("id, destination_url, qr_type")
     .eq("short_code", shortcode)
-    .single();
+    .maybeSingle();
 
   if (error || !qr) {
     return NextResponse.redirect(new URL("/", request.url));

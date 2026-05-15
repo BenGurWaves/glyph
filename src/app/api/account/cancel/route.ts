@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       .eq("user_id", user.id)
       .eq("status", "active")
       .eq("payment_method", "stripe")
-      .single();
+      .maybeSingle();
 
     if (!sub || !sub.payment_reference) {
       return NextResponse.json({ error: "No active Stripe subscription found" }, { status: 400 });
