@@ -14,12 +14,8 @@ export async function POST(request: NextRequest) {
   // Generate unique short code
   let short_code = generateShortCode();
   let attempts = 0;
-  while (attempts < 5) {
-    const { data: existing } = await supabaseAdmin
-      .from("qr_codes")
-      .select("id")
-      .eq("short_code", short_code)
-      .single();
+  while (attempts < 10) {
+    const { data: existing } = await supabaseAdmin.from("qr_codes").select("id").eq("short_code", short_code).single();
     if (!existing) break;
     short_code = generateShortCode();
     attempts++;
@@ -31,8 +27,8 @@ export async function POST(request: NextRequest) {
   if (authHeader) {
     const token = authHeader.replace("Bearer ", "");
     const authedSupabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
       { global: { headers: { Authorization: `Bearer ${token}` } } }
     );
     const { data: { user } } = await authedSupabase.auth.getUser();

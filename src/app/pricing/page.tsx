@@ -16,29 +16,30 @@ export default function PricingPage() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [trialSuccess, setTrialSuccess] = useState(false);
   const [trialExpiresAt, setTrialExpiresAt] = useState<string | null>(null);
+  const [isTrial, setIsTrial] = useState(false);
+  const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (user) {
         setUserEmail(user.email || null);
         setEmail(user.email || "");
-        const { data: sub } = await supabase
-          .from("subscriptions")
-          .select("plan, status")
-          .eq("user_id", user.id)
-          .eq("status", "active")
-          .single();
-
-        if (sub?.plan === "pro") {
-          setCurrentPlan("pro");
-        } else {
-          // Check coupon activations as fallback
-          const { data: coupon } = await supabase
-            .from("coupon_activations")
-            .select("email")
-            .eq("email", user.email?.toLowerCase() || "")
-            .single();
-          setCurrentPlan(coupon ? "pro" : "free");
+        const { data: { session } } = await supabase.auth.getSession();
+        const res = await fetch("/api/user/subscription", {
+          headers: { Authorization: `Bearer ${session?.access_token || ""}` },
+        });
+        if (res.ok) {
+          const sub = await res.json();
+          if (sub.is_pro) {
+            setCurrentPlan("pro");
+            setIsTrial(sub.is_trial);
+            setTrialDaysLeft(sub.days_until_expiry);
+            if (sub.is_trial && sub.expires_at) {
+              setTrialExpiresAt(sub.expires_at);
+            }
+          } else {
+            setCurrentPlan("free");
+          }
         }
       }
     });
@@ -184,7 +185,7 @@ export default function PricingPage() {
                 </ul>
 
                 {/* Checkout form */}
-                {currentPlan === "pro" ? (
+                {currentPlan === "pro" && !isTrial ? (
                   <div className="flex flex-col gap-3 mt-4 pt-4 border-t border-[#2a2a2a]">
                     <div className="flex items-center gap-3">
                       <span className="led led-active" />
@@ -196,6 +197,25 @@ export default function PricingPage() {
                     <Link href="/dashboard" className="keycap keycap-accent keycap-lg no-underline text-center">
                       go to dashboard
                     </Link>
+                  </div>
+                ) : currentPlan === "pro" && isTrial ? (
+                  <div className="flex flex-col gap-3 mt-4 pt-4 border-t border-[#2a2a2a]">
+                    <div className="flex items-center gap-3">
+                      <span className="led led-active" />
+                      <span className="text-[14px] font-medium">pro trial active</span>
+                    </div>
+                    <p className="text-[12px] text-[var(--text-on-dark-secondary)]">
+                      {trialDaysLeft !== null
+                        ? `Trial expires in ${trialDaysLeft} day${trialDaysLeft !== 1 ? "s" : ""}. Add a payment method to keep Pro.`
+                        : "Add a payment method to keep Pro features after your trial."}
+                    </p>
+                    <button
+                      onClick={handleStripeCheckout}
+                      disabled={loading}
+                      className="keycap keycap-accent keycap-lg disabled:opacity-50 w-full"
+                    >
+                      {loading ? "..." : "add payment method"}
+                    </button>
                   </div>
                 ) : trialSuccess ? (
                   <div className="flex flex-col gap-4 mt-4 pt-4 border-t border-[#2a2a2a] animate-in">
@@ -225,10 +245,10 @@ export default function PricingPage() {
                       Coupon accepted. Pro features are now active for {email}.
                     </p>
                     <Link
-                      href="/login"
+                      href="/dashboard"
                       className="keycap keycap-accent keycap-lg no-underline text-center"
                     >
-                      sign in to get started
+                      go to dashboard
                     </Link>
                   </div>
                 ) : (
@@ -272,8 +292,8 @@ export default function PricingPage() {
                 </div>
                 )}
 
-                {/* Alternative payments — only for non-Pro */}
-                {currentPlan !== "pro" && (
+                {/* Alternative payments — only for non-paid Pro */}
+                {!(currentPlan === "pro" && !isTrial) && (
                   <div className="flex flex-col gap-3 pt-4 border-t border-[#2a2a2a]">
                     <span className="label text-[var(--text-on-dark-secondary)]">
                       or pay with crypto

@@ -20,7 +20,7 @@ export default function LoginPage() {
       .from("coupon_activations")
       .select("email")
       .eq("email", userEmail.toLowerCase())
-      .single();
+      .maybeSingle();
 
     if (couponData) {
       await supabase.from("subscriptions").upsert(

@@ -42,7 +42,14 @@ export async function POST(request: NextRequest) {
 
     const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
     let shortCode = "";
-    for (let i = 0; i < 7; i++) shortCode += chars[Math.floor(Math.random() * chars.length)];
+    let attempts = 0;
+    while (attempts < 10) {
+      shortCode = "";
+      for (let i = 0; i < 7; i++) shortCode += chars[Math.floor(Math.random() * chars.length)];
+      const { data: existing } = await supabaseAdmin.from("qr_codes").select("id").eq("short_code", shortCode).maybeSingle();
+      if (!existing) break;
+      attempts++;
+    }
 
     let resolvedTitle = title || url;
     try { resolvedTitle = title || new URL(url).hostname; } catch { /* use url */ }

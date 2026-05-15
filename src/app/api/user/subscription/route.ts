@@ -169,8 +169,8 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Fallback for coupon/crypto
-    if (!sub && coupon) {
+    // Coupon activation overrides everything to Pro
+    if (coupon) {
       response.plan = "pro";
       response.status = "active";
       response.payment_method = "coupon";

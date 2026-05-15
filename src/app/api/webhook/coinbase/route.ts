@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { sendEmail, buildProWelcomeEmail } from "@/lib/email";
 
 export async function POST(request: NextRequest) {
   try {
@@ -54,6 +55,13 @@ export async function POST(request: NextRequest) {
           { email: email.toLowerCase(), coupon_code: `coinbase:${event.data.code}` },
           { onConflict: "email" }
         );
+      } else {
+        // Send welcome email for crypto payments
+        try {
+          await sendEmail(buildProWelcomeEmail(email));
+        } catch (emailErr) {
+          console.error("[Coinbase webhook] email error:", emailErr);
+        }
       }
     } else {
       // User hasn't signed up yet — store activation for when they do

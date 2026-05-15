@@ -26,7 +26,7 @@ export default function BulkPage() {
         .select("plan")
         .eq("user_id", user.id)
         .eq("status", "active")
-        .single();
+        .maybeSingle();
       if (sub?.plan !== "pro") { router.push("/pricing"); return; }
       setIsPro(true);
     });
@@ -64,7 +64,14 @@ export default function BulkPage() {
 
       const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
       let shortCode = "";
-      for (let j = 0; j < 7; j++) shortCode += chars[Math.floor(Math.random() * chars.length)];
+      let collisionAttempts = 0;
+      while (collisionAttempts < 10) {
+        shortCode = "";
+        for (let j = 0; j < 7; j++) shortCode += chars[Math.floor(Math.random() * chars.length)];
+        const { data: existing } = await supabase.from("qr_codes").select("id").eq("short_code", shortCode).maybeSingle();
+        if (!existing) break;
+        collisionAttempts++;
+      }
 
       let title = url;
       if (titleIdx >= 0 && cols[titleIdx]) {

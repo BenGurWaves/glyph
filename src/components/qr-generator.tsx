@@ -78,7 +78,7 @@ export function QRGenerator() {
           .select("plan, status")
           .eq("user_id", user.id)
           .eq("status", "active")
-          .single();
+          .maybeSingle();
 
         if (sub && sub.plan === "pro") {
           setIsPro(true);
@@ -88,7 +88,7 @@ export function QRGenerator() {
             .from("coupon_activations")
             .select("email")
             .eq("email", user.email?.toLowerCase() || "")
-            .single();
+            .maybeSingle();
 
           if (couponData) {
             await supabase.from("subscriptions").upsert(
@@ -346,7 +346,7 @@ export function QRGenerator() {
         {limitReached && (
           <div className="module-recessed p-4 flex flex-col gap-2 animate-in">
             <p className="text-[13px] text-[var(--text-primary)]">
-              Daily limit reached (20/day on free).
+              Daily limit reached ({DAILY_LIMIT}/day on free).
             </p>
             <Link
               href="/pricing"

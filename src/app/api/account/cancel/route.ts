@@ -12,8 +12,8 @@ export async function POST(request: NextRequest) {
     }
 
     const authSupabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
       { global: { headers: { Authorization: `Bearer ${token}` } } }
     );
     const { data: { user } } = await authSupabase.auth.getUser();
@@ -57,11 +57,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: result.error?.message || "Stripe error" }, { status: 500 });
     }
 
-    // Update local record
-    await supabaseAdmin
-      .from("subscriptions")
-      .update({ status: "cancelled" })
-      .eq("user_id", user.id);
+    // Do NOT set status to "cancelled" here — Stripe keeps the subscription active
+    // until the billing period ends. The webhook "customer.subscription.deleted"
+    // will fire then and update the status. This ensures the user keeps Pro access
+    // for the time they already paid for.
 
     // Send cancellation email
     const endDate = result.current_period_end

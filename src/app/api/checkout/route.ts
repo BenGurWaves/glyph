@@ -45,11 +45,12 @@ export async function POST(request: NextRequest) {
 
     const now = new Date();
     if (existingSub?.plan === "pro") {
-      const isActiveTrial = existingSub.expires_at && new Date(existingSub.expires_at) > now;
       const isActivePaid = !existingSub.expires_at && existingSub.status === "active";
-      if (isActiveTrial || isActivePaid) {
+      if (isActivePaid) {
         return NextResponse.json({ error: "You already have an active Pro subscription." }, { status: 400 });
       }
+      // Trial users can proceed to add a payment method — the Stripe webhook will
+      // clear expires_at when payment converts trial to paid.
     }
 
     const isCouponValid = coupon && coupon.toLowerCase() === COUPON_CODE.toLowerCase();

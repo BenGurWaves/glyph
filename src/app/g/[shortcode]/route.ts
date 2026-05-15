@@ -66,9 +66,9 @@ export async function GET(
     });
   }
 
-  // Ensure URL has protocol
+  // Ensure URL has protocol (only for URLs that look like web addresses)
   let destUrl = qr.destination_url;
-  if (!/^https?:\/\//i.test(destUrl)) {
+  if (!/^[a-z][a-z0-9+.-]*:/i.test(destUrl)) {
     destUrl = "https://" + destUrl;
   }
 

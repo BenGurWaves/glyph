@@ -11,8 +11,8 @@ export async function POST(request: NextRequest) {
     }
 
     const authSupabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
       { global: { headers: { Authorization: `Bearer ${token}` } } }
     );
     const { data: { user } } = await authSupabase.auth.getUser();

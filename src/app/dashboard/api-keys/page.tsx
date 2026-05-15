@@ -47,7 +47,7 @@ export default function ApiKeysPage() {
         .select("plan")
         .eq("user_id", user.id)
         .eq("status", "active")
-        .single();
+        .maybeSingle();
       let isProUser = sub?.plan === "pro";
 
       if (!isProUser && user.email) {
@@ -55,7 +55,7 @@ export default function ApiKeysPage() {
           .from("coupon_activations")
           .select("email")
           .eq("email", user.email.toLowerCase())
-          .single();
+          .maybeSingle();
 
         if (couponData) {
           await supabase.from("subscriptions").upsert(
