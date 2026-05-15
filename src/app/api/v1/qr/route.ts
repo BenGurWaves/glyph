@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 async function hashKey(key: string): Promise<string> {
   const encoder = new TextEncoder();
@@ -19,13 +19,8 @@ export async function POST(request: NextRequest) {
     const apiKey = authHeader.replace("Bearer ", "");
     const keyHash = await hashKey(apiKey);
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-
     // Validate API key
-    const { data: keyRow } = await supabase
+    const { data: keyRow } = await supabaseAdmin
       .from("api_keys")
       .select("user_id")
       .eq("key_hash", keyHash)
@@ -36,7 +31,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update last_used_at
-    await supabase.from("api_keys").update({ last_used_at: new Date().toISOString() }).eq("key_hash", keyHash);
+    await supabaseAdmin.from("api_keys").update({ last_used_at: new Date().toISOString() }).eq("key_hash", keyHash);
 
     const body = await request.json();
     const { url, title, dynamic = true } = body;
@@ -52,7 +47,7 @@ export async function POST(request: NextRequest) {
     let resolvedTitle = title || url;
     try { resolvedTitle = title || new URL(url).hostname; } catch { /* use url */ }
 
-    const { data, error } = await supabase.from("qr_codes").insert({
+    const { data, error } = await supabaseAdmin.from("qr_codes").insert({
       user_id: keyRow.user_id,
       short_code: shortCode,
       destination_url: url,

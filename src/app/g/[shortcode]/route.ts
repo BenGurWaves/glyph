@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 function parseUserAgent(ua: string) {
   let device = "desktop";
@@ -30,12 +30,7 @@ export async function GET(
 ) {
   const { shortcode } = await params;
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-
-  const { data: qr, error } = await supabase
+  const { data: qr, error } = await supabaseAdmin
     .from("qr_codes")
     .select("id, destination_url, qr_type")
     .eq("short_code", shortcode)
@@ -60,7 +55,7 @@ export async function GET(
       null;
     const referrer = request.headers.get("referer") || null;
 
-    await supabase.from("scans").insert({
+    await supabaseAdmin.from("scans").insert({
       qr_code_id: qr.id,
       country,
       city,

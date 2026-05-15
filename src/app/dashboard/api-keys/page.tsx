@@ -48,7 +48,25 @@ export default function ApiKeysPage() {
         .eq("user_id", user.id)
         .eq("status", "active")
         .single();
-      if (sub?.plan !== "pro") { router.push("/pricing"); return; }
+      let isProUser = sub?.plan === "pro";
+
+      if (!isProUser && user.email) {
+        const { data: couponData } = await supabase
+          .from("coupon_activations")
+          .select("email")
+          .eq("email", user.email.toLowerCase())
+          .single();
+
+        if (couponData) {
+          await supabase.from("subscriptions").upsert(
+            { user_id: user.id, plan: "pro", payment_method: "coupon", status: "active" },
+            { onConflict: "user_id" }
+          );
+          isProUser = true;
+        }
+      }
+
+      if (!isProUser) { router.push("/pricing"); return; }
 
       const { data } = await supabase
         .from("api_keys")

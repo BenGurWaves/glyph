@@ -124,7 +124,24 @@ export default function DashboardPage() {
         .eq("user_id", user.id)
         .eq("status", "active")
         .single();
-      setIsPro(sub?.plan === "pro");
+      let pro = sub?.plan === "pro";
+
+      if (!pro && user.email) {
+        const { data: couponData } = await supabase
+          .from("coupon_activations")
+          .select("email")
+          .eq("email", user.email.toLowerCase())
+          .single();
+
+        if (couponData) {
+          await supabase.from("subscriptions").upsert(
+            { user_id: user.id, plan: "pro", payment_method: "coupon", status: "active" },
+            { onConflict: "user_id" }
+          );
+          pro = true;
+        }
+      }
+      setIsPro(pro);
 
       await loadQrCodes(user.id);
       setLoading(false);

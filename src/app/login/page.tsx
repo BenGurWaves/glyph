@@ -15,6 +15,21 @@ export default function LoginPage() {
   const [message, setMessage] = useState<string | null>(null);
   const router = useRouter();
 
+  const syncCouponActivation = async (userEmail: string, userId: string) => {
+    const { data: couponData } = await supabase
+      .from("coupon_activations")
+      .select("email")
+      .eq("email", userEmail.toLowerCase())
+      .single();
+
+    if (couponData) {
+      await supabase.from("subscriptions").upsert(
+        { user_id: userId, plan: "pro", payment_method: "coupon", status: "active" },
+        { onConflict: "user_id" }
+      );
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -31,15 +46,22 @@ export default function LoginPage() {
         setError(error.message);
       } else if (data.session) {
         // Auto-confirmed — go straight to dashboard
+        if (data.user) {
+          await syncCouponActivation(data.user.email!, data.user.id);
+        }
         router.push("/dashboard");
       } else {
         // Email confirmation required
         setMessage("Check your email for a confirmation link.");
       }
     } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) setError(error.message);
-      else router.push("/dashboard");
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        setError(error.message);
+      } else if (data.user) {
+        await syncCouponActivation(data.user.email!, data.user.id);
+        router.push("/dashboard");
+      }
     }
 
     setLoading(false);

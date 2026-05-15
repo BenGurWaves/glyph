@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { generateShortCode } from "@/lib/qr";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
@@ -19,7 +15,7 @@ export async function POST(request: NextRequest) {
   let short_code = generateShortCode();
   let attempts = 0;
   while (attempts < 5) {
-    const { data: existing } = await supabase
+    const { data: existing } = await supabaseAdmin
       .from("qr_codes")
       .select("id")
       .eq("short_code", short_code)
@@ -43,7 +39,7 @@ export async function POST(request: NextRequest) {
     user_id = user?.id || null;
   }
 
-  const { data, error } = await supabase.from("qr_codes").insert({
+  const { data, error } = await supabaseAdmin.from("qr_codes").insert({
     user_id,
     short_code,
     destination_url,

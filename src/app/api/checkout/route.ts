@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 const COUPON_CODE = process.env.COUPON_CODE || "ben28gur28waves28";
 
@@ -21,25 +21,24 @@ export async function POST(request: NextRequest) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://glyph.calyvent.com";
 
     if (isCouponValid) {
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      );
-
       // Store coupon activation by email
-      await supabase.from("coupon_activations").upsert(
+      await supabaseAdmin.from("coupon_activations").upsert(
         { email: email.toLowerCase(), coupon_code: coupon },
         { onConflict: "email" }
       );
 
       // If user already exists, activate Pro subscription directly
-      const { data: userData } = await supabase.rpc("get_user_id_by_email", {
+      const { data: userData, error: userError } = await supabaseAdmin.rpc("get_user_id_by_email", {
         user_email: email.toLowerCase(),
       });
 
+      if (userError) {
+        console.error("[Checkout] get_user_id_by_email error:", userError.message);
+      }
+
       if (userData && userData.length > 0) {
         const userId = userData[0].id;
-        await supabase.from("subscriptions").upsert(
+        const { error: subError } = await supabaseAdmin.from("subscriptions").upsert(
           {
             user_id: userId,
             plan: "pro",
@@ -49,6 +48,10 @@ export async function POST(request: NextRequest) {
           },
           { onConflict: "user_id" }
         );
+
+        if (subError) {
+          console.error("[Checkout] subscription upsert error:", subError.message);
+        }
       }
 
       return NextResponse.json({ free: true });
