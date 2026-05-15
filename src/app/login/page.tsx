@@ -36,27 +36,31 @@ export default function LoginPage() {
     setMessage(null);
     setLoading(true);
 
-    if (isSignUp) {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { emailRedirectTo: "https://glyph.calyvent.com/dashboard" },
-      });
-      if (error) {
-        setError(error.message);
-      } else if (data.user) {
-        // Go straight to dashboard (disable email confirmation in Supabase Auth settings)
-        await syncCouponActivation(data.user.email!, data.user.id);
-        router.push("/dashboard");
+    try {
+      if (isSignUp) {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: "https://glyph.calyvent.com/dashboard" },
+        });
+        if (error) {
+          setError(error.message);
+        } else if (data.user) {
+          // Go straight to dashboard (disable email confirmation in Supabase Auth settings)
+          await syncCouponActivation(data.user.email!, data.user.id);
+          router.push("/dashboard");
+        }
+      } else {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+          setError(error.message);
+        } else if (data.user) {
+          await syncCouponActivation(data.user.email!, data.user.id);
+          router.push("/dashboard");
+        }
       }
-    } else {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        setError(error.message);
-      } else if (data.user) {
-        await syncCouponActivation(data.user.email!, data.user.id);
-        router.push("/dashboard");
-      }
+    } catch (err) {
+      setError("Unable to connect. Please check your internet and try again.");
     }
 
     setLoading(false);
