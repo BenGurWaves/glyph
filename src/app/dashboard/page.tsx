@@ -251,7 +251,10 @@ export default function DashboardPage() {
                   )}
                 </div>
               </div>
-              <button onClick={handleSignOut} className="keycap keycap-light keycap-sm">sign out</button>
+              <div className="flex items-center gap-2">
+                <Link href="/dashboard/settings" className="keycap keycap-light keycap-sm no-underline">settings</Link>
+                <button onClick={handleSignOut} className="keycap keycap-light keycap-sm">sign out</button>
+              </div>
             </div>
 
             {/* Pro tools */}

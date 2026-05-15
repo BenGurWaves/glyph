@@ -1,0 +1,71 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "@/lib/supabase-admin";
+
+export async function POST(request: NextRequest) {
+  try {
+    // Verify auth
+    const token = request.headers.get("authorization")?.replace("Bearer ", "");
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const authSupabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { global: { headers: { Authorization: `Bearer ${token}` } } }
+    );
+    const { data: { user } } = await authSupabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Find active Stripe subscription
+    const { data: sub } = await supabaseAdmin
+      .from("subscriptions")
+      .select("payment_reference, status, payment_method")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .eq("payment_method", "stripe")
+      .single();
+
+    if (!sub || !sub.payment_reference) {
+      return NextResponse.json({ error: "No active Stripe subscription found" }, { status: 400 });
+    }
+
+    // Cancel via Stripe API
+    const stripeKey = process.env.STRIPE_SECRET_KEY;
+    if (!stripeKey) {
+      return NextResponse.json({ error: "Payment system not configured" }, { status: 500 });
+    }
+
+    const stripeSubId = sub.payment_reference;
+    const res = await fetch(`https://api.stripe.com/v1/subscriptions/${stripeSubId}`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${stripeKey}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: "cancel_at_period_end=true",
+    });
+
+    const result = await res.json();
+
+    if (!res.ok) {
+      console.error("[Cancel] Stripe error:", result.error?.message);
+      return NextResponse.json({ error: result.error?.message || "Stripe error" }, { status: 500 });
+    }
+
+    // Update local record
+    await supabaseAdmin
+      .from("subscriptions")
+      .update({ status: "cancelled" })
+      .eq("user_id", user.id);
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Cancel failed";
+    console.error("[Cancel] error:", message);
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}

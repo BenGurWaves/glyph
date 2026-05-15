@@ -11,6 +11,7 @@ export function Nav() {
     { href: "/scan", label: "scan" },
     { href: "/pricing", label: "pricing" },
     { href: "/dashboard", label: "dashboard" },
+    { href: "/dashboard/settings", label: "settings" },
   ];
 
   return (
