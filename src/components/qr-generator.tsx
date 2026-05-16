@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { generateQRDataURL } from "@/lib/qr";
 import { generateQRWithLogo } from "@/lib/qr-with-logo";
-import { saveQRCode } from "@/lib/storage";
+import { saveQRCode, getTrackingUrl } from "@/lib/storage";
 import { useRouter } from "next/navigation";
 
 export function QRGenerator() {
@@ -108,6 +108,22 @@ export function QRGenerator() {
         },
         qr_image: qrDataUrl,
       });
+      
+      // Regenerate QR with tracking URL
+      const trackingUrl = getTrackingUrl(qrCode.shortCode);
+      let dataUrl: string;
+      if (logoDataUrl) {
+        dataUrl = await generateQRWithLogo(trackingUrl, { width: 300, fgColor, bgColor, logoDataUrl });
+      } else {
+        dataUrl = await generateQRDataURL(trackingUrl, {
+          width: 300,
+          margin: 2,
+          color: { dark: fgColor, light: bgColor },
+          errorCorrectionLevel: "H",
+        });
+      }
+      setQrDataUrl(dataUrl);
+      
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (error) {

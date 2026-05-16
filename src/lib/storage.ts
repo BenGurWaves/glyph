@@ -99,6 +99,10 @@ export async function saveQRCode(qrCode: Omit<QRCode, "id" | "createdAt" | "scan
   }
 }
 
+export function getTrackingUrl(shortCode: string): string {
+  return `https://glyph.calyvent.com/g/${shortCode}`
+}
+
 export async function deleteQRCode(id: string): Promise<void> {
   const { error } = await supabase.from('qr_codes').delete().eq('id', id)
   if (error) throw error
