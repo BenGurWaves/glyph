@@ -84,7 +84,7 @@ export function QRGenerator() {
     a.click();
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!url.trim() || !qrDataUrl) return;
     
     let normalizedUrl = url.trim();
@@ -95,16 +95,24 @@ export function QRGenerator() {
     let title = normalizedUrl;
     try { title = new URL(normalizedUrl).hostname; } catch { /* use full url */ }
 
-    saveQRCode({
-      shortCode: Math.random().toString(36).substring(2, 9),
-      destinationUrl: normalizedUrl,
-      title,
-      qrType: "static",
-      styleConfig: { fgColor, bgColor, ...(logoDataUrl ? { logo: logoDataUrl } : {}) },
-    });
-
-    setSaved(true);
-    setTimeout(() => router.push("/dashboard"), 500);
+    try {
+      const qrCode = await saveQRCode({
+        shortCode: Math.random().toString(36).substring(2, 9),
+        destinationUrl: normalizedUrl,
+        title: title,
+        qrType: "dynamic",
+        styleConfig: {
+          fgColor,
+          bgColor,
+          logo: logoDataUrl || undefined,
+        },
+        qr_image: qrDataUrl,
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (error) {
+      console.error("Failed to save QR code:", error);
+    }
   };
 
   return (

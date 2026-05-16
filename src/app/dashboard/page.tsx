@@ -5,7 +5,7 @@ import { generateQRDataURL } from "@/lib/qr";
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
 import Link from "next/link";
-import { getQRCodes, deleteQRCode, incrementScanCount, type QRCode } from "@/lib/storage";
+import { getQRCodes, deleteQRCode, updateQRCode, getQRCodeScans, type QRCode } from "@/lib/storage";
 
 type StyleConfig = {
   fgColor?: string;
@@ -63,9 +63,16 @@ export default function DashboardPage() {
   const [editUrl, setEditUrl] = useState("");
   const logoInputRef = useRef<HTMLInputElement | null>(null);
 
-  const loadQrCodes = useCallback(() => {
-    const codes = getQRCodes();
-    setQrCodes(codes);
+  const loadQrCodes = useCallback(async () => {
+    const codes = await getQRCodes();
+    // Load scans for each code
+    const codesWithScans = await Promise.all(
+      codes.map(async (qr) => ({
+        ...qr,
+        scans: await getQRCodeScans(qr.id),
+      }))
+    );
+    setQrCodes(codesWithScans);
     setLoading(false);
   }, []);
 
@@ -73,14 +80,9 @@ export default function DashboardPage() {
     loadQrCodes();
   }, [loadQrCodes]);
 
-  const handleDelete = (id: string) => {
-    deleteQRCode(id);
+  const handleDelete = async (id: string) => {
+    await deleteQRCode(id);
     setQrCodes((prev) => prev.filter((qr) => qr.id !== id));
-  };
-
-  const handleIncrementScan = (id: string) => {
-    incrementScanCount(id);
-    loadQrCodes();
   };
 
   const downloadQr = (qr: QRCode, qrImage: string) => {
@@ -111,22 +113,21 @@ export default function DashboardPage() {
     const newConfig: StyleConfig = { fgColor: editFg, bgColor: editBg };
     if (editLogo) newConfig.logo = editLogo;
 
-    // Update in localStorage
-    const codes = getQRCodes();
-    const updated = codes.map((q: QRCode) =>
-      q.id === qr.id
-        ? { ...q, styleConfig: newConfig, destinationUrl: editUrl }
-        : q
-    );
-    localStorage.setItem("glyph_qr_codes", JSON.stringify(updated));
+    // Update in Supabase
+    await updateQRCode(qr.id, {
+      styleConfig: newConfig,
+      destinationUrl: editUrl,
+      qr_image: qr.qr_image,
+    });
 
-    // Re-render QR
+    // Re-render QR with new config
     const updatedQr = { ...qr, styleConfig: newConfig, destinationUrl: editUrl };
     const newImage = await renderQR(updatedQr);
 
+    // Update state with both the new config and new image
     setQrCodes((prev) =>
       prev.map((q) =>
-        q.id === qr.id ? { ...updatedQr, qr_image: newImage } : q
+        q.id === qr.id ? { ...updatedQr, qr_image: newImage, styleConfig: newConfig, destinationUrl: editUrl } : q
       )
     );
 
@@ -206,7 +207,6 @@ export default function DashboardPage() {
                     onDownload={downloadQr}
                     onEdit={startEdit}
                     onDelete={handleDelete}
-                    onIncrementScan={handleIncrementScan}
                     onSaveEdit={saveEdit}
                     onLogoUpload={handleLogoUpload}
                     onSetEditFg={setEditFg}
@@ -241,7 +241,6 @@ function QRCodeItem({
   onDownload,
   onEdit,
   onDelete,
-  onIncrementScan,
   onSaveEdit,
   onLogoUpload,
   onSetEditFg,
@@ -264,7 +263,6 @@ function QRCodeItem({
   onDownload: (qr: QRCode, qrImage: string) => void;
   onEdit: (qr: QRCode) => void;
   onDelete: (id: string) => void;
-  onIncrementScan: (id: string) => void;
   onSaveEdit: (qr: QRCode) => Promise<void>;
   onLogoUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onSetEditFg: (val: string) => void;
@@ -316,9 +314,6 @@ function QRCodeItem({
             className="keycap keycap-dark keycap-sm"
           >
             {editingId === qr.id ? "close" : "edit"}
-          </button>
-          <button onClick={() => onIncrementScan(qr.id)} className="keycap keycap-light keycap-sm text-[11px]">
-            + scan
           </button>
           <button onClick={() => onDelete(qr.id)} className="text-[10px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors lowercase">delete</button>
         </div>
