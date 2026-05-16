@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { supabase } from "@/lib/supabase";
 import { generateQRDataURL } from "@/lib/qr";
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { getQRCodes, deleteQRCode, type QRCode } from "@/lib/storage";
 
 type StyleConfig = {
   fgColor?: string;
@@ -14,29 +13,12 @@ type StyleConfig = {
   logo?: string;
 };
 
-type QRCodeRow = {
-  id: string;
-  user_id: string | null;
-  short_code: string;
-  destination_url: string;
-  title: string | null;
-  qr_type: "static" | "dynamic";
-  style_config: StyleConfig;
-  created_at: string;
-  scan_count?: number;
-  qr_image?: string;
-};
+async function renderQR(qr: QRCode): Promise<string> {
+  const fgColor = qr.styleConfig?.fgColor || "#1A1A1A";
+  const bgColor = qr.styleConfig?.bgColor || "#FFFFFF";
+  const logo = qr.styleConfig?.logo;
 
-async function renderQR(qr: QRCodeRow): Promise<string> {
-  const fgColor = qr.style_config?.fgColor || "#1A1A1A";
-  const bgColor = qr.style_config?.bgColor || "#FFFFFF";
-  const logo = qr.style_config?.logo;
-
-  const trackingUrl = qr.qr_type === "dynamic"
-    ? `https://glyph.calyvent.com/g/${qr.short_code}`
-    : qr.destination_url;
-
-  const baseQR = await generateQRDataURL(trackingUrl, {
+  const baseQR = await generateQRDataURL(qr.destinationUrl, {
     width: 300, margin: 2,
     color: { dark: fgColor, light: bgColor },
     errorCorrectionLevel: "H",
@@ -71,100 +53,44 @@ async function renderQR(qr: QRCodeRow): Promise<string> {
 }
 
 export default function DashboardPage() {
-  const [qrCodes, setQrCodes] = useState<QRCodeRow[]>([]);
+  const [qrCodes, setQrCodes] = useState<QRCode[]>([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
-  const [isPro, setIsPro] = useState(false);
-  const [trialWarning, setTrialWarning] = useState(false);
-  const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editFg, setEditFg] = useState("#1A1A1A");
   const [editBg, setEditBg] = useState("#FFFFFF");
   const [editLogo, setEditLogo] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [editUrl, setEditUrl] = useState("");
-  const logoInputRef = useRef<HTMLInputElement>(null);
-  const router = useRouter();
+  const logoInputRef = useRef<HTMLInputElement | null>(null);
 
-  const loadQrCodes = useCallback(async (uid: string) => {
-    const { data: codes } = await supabase
-      .from("qr_codes")
-      .select("*")
-      .eq("user_id", uid)
-      .order("created_at", { ascending: false });
-
-    if (!codes) return;
-
-    const enriched: QRCodeRow[] = await Promise.all(
-      codes.map(async (qr: QRCodeRow) => {
-        const { count } = await supabase
-          .from("scans")
-          .select("*", { count: "exact", head: true })
-          .eq("qr_code_id", qr.id);
-
-        let qrImage = "";
-        try {
-          qrImage = await renderQR(qr);
-        } catch { /* skip */ }
-
-        return { ...qr, scan_count: count || 0, qr_image: qrImage };
-      })
-    );
-
-    setQrCodes(enriched);
+  const loadQrCodes = useCallback(() => {
+    const codes = getQRCodes();
+    setQrCodes(codes);
+    setLoading(false);
   }, []);
 
   useEffect(() => {
-    const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.push("/login"); return; }
-      setUser(user);
+    loadQrCodes();
+  }, [loadQrCodes]);
 
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch("/api/user/subscription", {
-        headers: { Authorization: `Bearer ${session?.access_token || ""}` },
-      });
-
-      let pro = false;
-      if (res.ok) {
-        const subData = await res.json();
-        pro = subData.is_pro;
-        if (subData.show_warning) {
-          setTrialWarning(true);
-          setTrialDaysLeft(subData.days_until_expiry);
-        }
-      }
-      setIsPro(pro);
-
-      await loadQrCodes(user.id);
-      setLoading(false);
-    };
-    init();
-  }, [router, loadQrCodes]);
-
-  const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("qr_codes").delete().eq("id", id).eq("user_id", user?.id);
-    if (error) {
-      console.error("[Dashboard] delete error:", error.message);
-      return;
-    }
+  const handleDelete = (id: string) => {
+    deleteQRCode(id);
     setQrCodes((prev) => prev.filter((qr) => qr.id !== id));
   };
 
-  const downloadQr = (qr: QRCodeRow) => {
-    if (!qr.qr_image) return;
+  const downloadQr = (qr: QRCode, qrImage: string) => {
     const a = document.createElement("a");
-    a.href = qr.qr_image;
-    a.download = `glyph-${qr.short_code}.png`;
+    a.href = qrImage;
+    a.download = `glyph-${qr.shortCode}.png`;
     a.click();
   };
 
-  const startEdit = (qr: QRCodeRow) => {
+  const startEdit = (qr: QRCode) => {
     setEditingId(qr.id);
-    setEditFg(qr.style_config?.fgColor || "#1A1A1A");
-    setEditBg(qr.style_config?.bgColor || "#FFFFFF");
-    setEditLogo(qr.style_config?.logo || null);
-    setEditUrl(qr.destination_url);
+    setEditFg(qr.styleConfig?.fgColor || "#1A1A1A");
+    setEditBg(qr.styleConfig?.bgColor || "#FFFFFF");
+    setEditLogo(qr.styleConfig?.logo || null);
+    setEditUrl(qr.destinationUrl);
   };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -175,43 +101,27 @@ export default function DashboardPage() {
     reader.readAsDataURL(file);
   };
 
-  const saveEdit = async (qr: QRCodeRow) => {
+  const saveEdit = async (qr: QRCode) => {
     setSaving(true);
     const newConfig: StyleConfig = { fgColor: editFg, bgColor: editBg };
     if (editLogo) newConfig.logo = editLogo;
 
-    const updatePayload: Record<string, unknown> = {
-      style_config: newConfig,
-      updated_at: new Date().toISOString(),
-    };
-
-    // Update destination URL if changed (dynamic codes only)
-    if (editUrl && editUrl !== qr.destination_url && qr.qr_type === "dynamic") {
-      updatePayload.destination_url = editUrl;
-    }
-
-    const { error: updateError } = await supabase.from("qr_codes")
-      .update(updatePayload)
-      .eq("id", qr.id)
-      .eq("user_id", user?.id);
-
-    if (updateError) {
-      console.error("[Dashboard] saveEdit error:", updateError.message);
-      setSaving(false);
-      return;
-    }
+    // Update in localStorage
+    const codes = getQRCodes();
+    const updated = codes.map((q: QRCode) =>
+      q.id === qr.id
+        ? { ...q, styleConfig: newConfig, destinationUrl: editUrl }
+        : q
+    );
+    localStorage.setItem("glyph_qr_codes", JSON.stringify(updated));
 
     // Re-render QR
-    const updated = {
-      ...qr,
-      style_config: newConfig,
-      destination_url: (updatePayload.destination_url as string) || qr.destination_url,
-    };
-    const newImage = await renderQR(updated);
+    const updatedQr = { ...qr, styleConfig: newConfig, destinationUrl: editUrl };
+    const newImage = await renderQR(updatedQr);
 
     setQrCodes((prev) =>
       prev.map((q) =>
-        q.id === qr.id ? { ...updated, qr_image: newImage, scan_count: q.scan_count } : q
+        q.id === qr.id ? { ...updatedQr, qr_image: newImage } : q
       )
     );
 
@@ -240,39 +150,11 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-[28px] font-medium leading-tight tracking-tight lowercase">dashboard</h1>
-                <div className="flex items-center gap-3 mt-1">
-                  <p className="text-[12px] text-[var(--text-secondary)]">{user?.email}</p>
-                  {isPro && (
-                    <span className="flex items-center gap-1.5">
-                      <span className="led led-active" />
-                      <span className="text-[10px] font-medium text-[var(--accent)]">pro</span>
-                    </span>
-                  )}
-                </div>
-              </div>
-              <Link href="/dashboard/settings" className="keycap keycap-light keycap-sm no-underline">settings</Link>
-            </div>
-
-            {/* Pro tools */}
-            {isPro && (
-              <div className="flex gap-3">
-                <Link href="/dashboard/bulk" className="keycap keycap-light keycap-sm no-underline">bulk generate</Link>
-                <Link href="/dashboard/api-keys" className="keycap keycap-light keycap-sm no-underline">api keys</Link>
-              </div>
-            )}
-
-            {/* Trial warning */}
-            {trialWarning && (
-              <div className="module p-4 border-l-2 border-[var(--accent)] flex flex-col gap-2">
-                <p className="text-[13px] text-[var(--text-primary)]">
-                  Your Pro trial expires in <strong>{trialDaysLeft} day{trialDaysLeft !== 1 ? "s" : ""}</strong>.
-                  Add a payment method to keep Pro features.
+                <p className="text-[12px] text-[var(--text-secondary)] mt-1">
+                  your qr codes. saved locally.
                 </p>
-                <Link href="/pricing" className="keycap keycap-accent keycap-sm no-underline self-start">
-                  add payment method
-                </Link>
               </div>
-            )}
+            </div>
 
             {/* Stats bar */}
             <div className="grid grid-cols-3 gap-4">
@@ -281,12 +163,12 @@ export default function DashboardPage() {
                 <span className="text-[24px] font-medium">{qrCodes.length}</span>
               </div>
               <div className="module-recessed p-4 flex flex-col gap-1">
-                <span className="label">dynamic codes</span>
-                <span className="text-[24px] font-medium">{qrCodes.filter((q) => q.qr_type === "dynamic").length}</span>
+                <span className="label">total scans</span>
+                <span className="text-[24px] font-medium">{qrCodes.reduce((sum, q) => sum + q.scans.length, 0)}</span>
               </div>
               <div className="module-recessed p-4 flex flex-col gap-1">
-                <span className="label">total scans</span>
-                <span className="text-[24px] font-medium">{qrCodes.reduce((sum, q) => sum + (q.scan_count || 0), 0)}</span>
+                <span className="label">storage</span>
+                <span className="text-[24px] font-medium">local</span>
               </div>
             </div>
 
@@ -305,130 +187,30 @@ export default function DashboardPage() {
             ) : (
               <div className="flex flex-col gap-4">
                 {qrCodes.map((qr) => (
-                  <div key={qr.id} className="module p-5 flex flex-col gap-4">
-                    <div className="flex gap-4">
-                      {/* QR Preview */}
-                      {qr.qr_image && (
-                        <div className="module-recessed p-2 shrink-0 flex items-center justify-center" style={{ width: 80, height: 80 }}>
-                          <img src={qr.qr_image} alt="QR code" width={64} height={64} />
-                        </div>
-                      )}
-
-                      {/* Info */}
-                      <div className="flex-1 min-w-0 flex flex-col gap-1.5">
-                        <div className="flex items-center gap-2">
-                          <span className={`led ${qr.qr_type === "dynamic" ? "led-active" : ""}`} />
-                          <span className="text-[14px] font-medium lowercase truncate">{qr.title || qr.short_code}</span>
-                          <span className="text-[10px] text-[var(--text-tertiary)] lowercase">{qr.qr_type}</span>
-                        </div>
-                        <p className="text-[12px] font-mono text-[var(--text-secondary)] truncate">{qr.destination_url}</p>
-                        {qr.qr_type === "dynamic" && (
-                          <p className="text-[11px] font-mono text-[var(--text-tertiary)]">glyph.calyvent.com/g/{qr.short_code}</p>
-                        )}
-                        <div className="flex items-center gap-4 mt-1">
-                          <span className="text-[11px] text-[var(--text-secondary)]">{qr.scan_count} {qr.scan_count === 1 ? "scan" : "scans"}</span>
-                          <span className="text-[11px] text-[var(--text-tertiary)]">{new Date(qr.created_at).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex flex-col gap-2 shrink-0">
-                        <button onClick={() => downloadQr(qr)} className="keycap keycap-light keycap-sm">download</button>
-                        {isPro && (
-                          <button
-                            onClick={() => editingId === qr.id ? setEditingId(null) : startEdit(qr)}
-                            className="keycap keycap-dark keycap-sm"
-                          >
-                            {editingId === qr.id ? "close" : "edit"}
-                          </button>
-                        )}
-                        {qr.qr_type === "dynamic" && (
-                          <Link href={`/dashboard/${qr.id}`} className="keycap keycap-light keycap-sm no-underline text-center">analytics</Link>
-                        )}
-                        <button onClick={() => handleDelete(qr.id)} className="text-[10px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors lowercase">delete</button>
-                      </div>
-                    </div>
-
-                    {/* Edit Panel (Pro) */}
-                    {editingId === qr.id && isPro && (
-                      <div className="module-recessed p-4 flex flex-col gap-4 animate-in">
-                        <span className="label">customize qr code</span>
-
-                        {/* Destination URL editing (dynamic codes only) */}
-                        {qr.qr_type === "dynamic" && (
-                          <div className="flex flex-col gap-1.5">
-                            <span className="label">destination url</span>
-                            <input
-                              type="url"
-                              value={editUrl}
-                              onChange={(e) => setEditUrl(e.target.value)}
-                              placeholder="https://example.com"
-                              className="hw-input font-mono text-[12px]"
-                            />
-                            <span className="text-[10px] text-[var(--text-tertiary)]">
-                              change where this QR code points without reprinting
-                            </span>
-                          </div>
-                        )}
-
-                        <div className="flex gap-6">
-                          <div className="flex flex-col gap-1.5">
-                            <span className="label">code color</span>
-                            <div className="flex items-center gap-2">
-                              <input type="color" value={editFg} onChange={(e) => setEditFg(e.target.value)}
-                                className="w-8 h-8 rounded cursor-pointer border border-[var(--border)]" style={{ padding: 0 }} />
-                              <span className="font-mono text-[11px] text-[var(--text-secondary)]">{editFg}</span>
-                            </div>
-                          </div>
-                          <div className="flex flex-col gap-1.5">
-                            <span className="label">background</span>
-                            <div className="flex items-center gap-2">
-                              <input type="color" value={editBg} onChange={(e) => setEditBg(e.target.value)}
-                                className="w-8 h-8 rounded cursor-pointer border border-[var(--border)]" style={{ padding: 0 }} />
-                              <span className="font-mono text-[11px] text-[var(--text-secondary)]">{editBg}</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Logo */}
-                        <div className="flex flex-col gap-1.5">
-                          <span className="label">logo overlay</span>
-                          <div className="flex items-center gap-3">
-                            <input ref={logoInputRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
-                            <button onClick={() => logoInputRef.current?.click()} className="keycap keycap-light keycap-sm">
-                              {editLogo ? "change logo" : "upload logo"}
-                            </button>
-                            {editLogo && (
-                              <>
-                                <img src={editLogo} alt="Logo" className="w-8 h-8 rounded object-cover border border-[var(--border)]" />
-                                <button onClick={() => setEditLogo(null)} className="text-[10px] text-[var(--text-tertiary)] hover:text-[var(--accent)]">remove</button>
-                              </>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Presets */}
-                        <div className="flex gap-2 flex-wrap">
-                          {[
-                            { fg: "#1A1A1A", bg: "#FFFFFF", name: "classic" },
-                            { fg: "#1A1A1A", bg: "#F5F0EB", name: "warm" },
-                            { fg: "#E8652B", bg: "#FFFFFF", name: "accent" },
-                            { fg: "#FFFFFF", bg: "#1A1A1A", name: "inverted" },
-                            { fg: "#023020", bg: "#F5F0EB", name: "forest" },
-                          ].map((p) => (
-                            <button key={p.name} onClick={() => { setEditFg(p.fg); setEditBg(p.bg); }} className="keycap keycap-light keycap-sm">
-                              <span className="w-3 h-3 rounded-sm mr-1.5 border border-[var(--border)] inline-block" style={{ background: p.fg }} />
-                              {p.name}
-                            </button>
-                          ))}
-                        </div>
-
-                        <button onClick={() => saveEdit(qr)} disabled={saving} className="keycap keycap-accent keycap-md self-start disabled:opacity-50">
-                          {saving ? "saving..." : "save changes"}
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                  <QRCodeItem
+                    key={qr.id}
+                    qr={qr}
+                    qrImage={qr.qr_image}
+                    editingId={editingId}
+                    editFg={editFg}
+                    editBg={editBg}
+                    editLogo={editLogo}
+                    editUrl={editUrl}
+                    saving={saving}
+                    logoInputRef={logoInputRef}
+                    onDownload={downloadQr}
+                    onEdit={startEdit}
+                    onDelete={handleDelete}
+                    onSaveEdit={saveEdit}
+                    onLogoUpload={handleLogoUpload}
+                    onSetEditFg={setEditFg}
+                    onSetEditBg={setEditBg}
+                    onSetEditLogo={setEditLogo}
+                    onSetEditUrl={setEditUrl}
+                    onSetEditingId={setEditingId}
+                    onRenderQR={renderQR}
+                    onSetQrCodes={setQrCodes}
+                  />
                 ))}
               </div>
             )}
@@ -437,5 +219,174 @@ export default function DashboardPage() {
       </main>
       <Footer />
     </>
+  );
+}
+
+function QRCodeItem({
+  qr,
+  qrImage,
+  editingId,
+  editFg,
+  editBg,
+  editLogo,
+  editUrl,
+  saving,
+  logoInputRef,
+  onDownload,
+  onEdit,
+  onDelete,
+  onSaveEdit,
+  onLogoUpload,
+  onSetEditFg,
+  onSetEditBg,
+  onSetEditLogo,
+  onSetEditUrl,
+  onSetEditingId,
+  onRenderQR,
+  onSetQrCodes,
+}: {
+  qr: QRCode;
+  qrImage?: string;
+  editingId: string | null;
+  editFg: string;
+  editBg: string;
+  editLogo: string | null;
+  editUrl: string;
+  saving: boolean;
+  logoInputRef: React.RefObject<HTMLInputElement | null>;
+  onDownload: (qr: QRCode, qrImage: string) => void;
+  onEdit: (qr: QRCode) => void;
+  onDelete: (id: string) => void;
+  onSaveEdit: (qr: QRCode) => Promise<void>;
+  onLogoUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onSetEditFg: (val: string) => void;
+  onSetEditBg: (val: string) => void;
+  onSetEditLogo: (val: string | null) => void;
+  onSetEditUrl: (val: string) => void;
+  onSetEditingId: (val: string | null) => void;
+  onRenderQR: (qr: QRCode) => Promise<string>;
+  onSetQrCodes: React.Dispatch<React.SetStateAction<QRCode[]>>;
+}) {
+  const [localQrImage, setLocalQrImage] = useState<string | undefined>(qrImage);
+
+  useEffect(() => {
+    if (!qrImage) {
+      onRenderQR(qr).then(setLocalQrImage);
+    }
+  }, [qr, qrImage, onRenderQR]);
+
+  return (
+    <div className="module p-5 flex flex-col gap-4">
+      <div className="flex gap-4">
+        {/* QR Preview */}
+        {localQrImage && (
+          <div className="module-recessed p-2 shrink-0 flex items-center justify-center" style={{ width: 80, height: 80 }}>
+            <img src={localQrImage} alt="QR code" width={64} height={64} />
+          </div>
+        )}
+
+        {/* Info */}
+        <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+          <div className="flex items-center gap-2">
+            <span className="led led-active" />
+            <span className="text-[14px] font-medium lowercase truncate">{qr.title || qr.shortCode}</span>
+          </div>
+          <p className="text-[12px] font-mono text-[var(--text-secondary)] truncate">{qr.destinationUrl}</p>
+          <div className="flex items-center gap-4 mt-1">
+            <span className="text-[11px] text-[var(--text-secondary)]">{qr.scans.length} {qr.scans.length === 1 ? "scan" : "scans"}</span>
+            <span className="text-[11px] text-[var(--text-tertiary)]">{new Date(qr.createdAt).toLocaleDateString()}</span>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex flex-col gap-2 shrink-0">
+          {localQrImage && (
+            <button onClick={() => onDownload(qr, localQrImage)} className="keycap keycap-light keycap-sm">download</button>
+          )}
+          <button
+            onClick={() => editingId === qr.id ? onSetEditingId(null) : onEdit(qr)}
+            className="keycap keycap-dark keycap-sm"
+          >
+            {editingId === qr.id ? "close" : "edit"}
+          </button>
+          <button onClick={() => onDelete(qr.id)} className="text-[10px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors lowercase">delete</button>
+        </div>
+      </div>
+
+      {/* Edit Panel */}
+      {editingId === qr.id && (
+        <div className="module-recessed p-4 flex flex-col gap-4 animate-in">
+          <span className="label">customize qr code</span>
+
+          {/* Destination URL */}
+          <div className="flex flex-col gap-1.5">
+            <span className="label">destination url</span>
+            <input
+              type="url"
+              value={editUrl}
+              onChange={(e) => onSetEditUrl(e.target.value)}
+              placeholder="https://example.com"
+              className="hw-input font-mono text-[12px]"
+            />
+          </div>
+
+          <div className="flex gap-6">
+            <div className="flex flex-col gap-1.5">
+              <span className="label">code color</span>
+              <div className="flex items-center gap-2">
+                <input type="color" value={editFg} onChange={(e) => onSetEditFg(e.target.value)}
+                  className="w-8 h-8 rounded cursor-pointer border border-[var(--border)]" style={{ padding: 0 }} />
+                <span className="font-mono text-[11px] text-[var(--text-secondary)]">{editFg}</span>
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <span className="label">background</span>
+              <div className="flex items-center gap-2">
+                <input type="color" value={editBg} onChange={(e) => onSetEditBg(e.target.value)}
+                  className="w-8 h-8 rounded cursor-pointer border border-[var(--border)]" style={{ padding: 0 }} />
+                <span className="font-mono text-[11px] text-[var(--text-secondary)]">{editBg}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Logo */}
+          <div className="flex flex-col gap-1.5">
+            <span className="label">logo overlay</span>
+            <div className="flex items-center gap-3">
+              <input ref={logoInputRef} type="file" accept="image/*" onChange={onLogoUpload} className="hidden" />
+              <button onClick={() => logoInputRef.current?.click()} className="keycap keycap-light keycap-sm">
+                {editLogo ? "change logo" : "upload logo"}
+              </button>
+              {editLogo && (
+                <>
+                  <img src={editLogo} alt="Logo" className="w-8 h-8 rounded object-cover border border-[var(--border)]" />
+                  <button onClick={() => onSetEditLogo(null)} className="text-[10px] text-[var(--text-tertiary)] hover:text-[var(--accent)]">remove</button>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Presets */}
+          <div className="flex gap-2 flex-wrap">
+            {[
+              { fg: "#1A1A1A", bg: "#FFFFFF", name: "classic" },
+              { fg: "#1A1A1A", bg: "#F5F0EB", name: "warm" },
+              { fg: "#E8652B", bg: "#FFFFFF", name: "accent" },
+              { fg: "#FFFFFF", bg: "#1A1A1A", name: "inverted" },
+              { fg: "#023020", bg: "#F5F0EB", name: "forest" },
+            ].map((p) => (
+              <button key={p.name} onClick={() => { onSetEditFg(p.fg); onSetEditBg(p.bg); }} className="keycap keycap-light keycap-sm">
+                <span className="w-3 h-3 rounded-sm mr-1.5 border border-[var(--border)] inline-block" style={{ background: p.fg }} />
+                {p.name}
+              </button>
+            ))}
+          </div>
+
+          <button onClick={() => onSaveEdit(qr)} disabled={saving} className="keycap keycap-accent keycap-md self-start disabled:opacity-50">
+            {saving ? "saving..." : "save changes"}
+          </button>
+        </div>
+      )}
+    </div>
   );
 }

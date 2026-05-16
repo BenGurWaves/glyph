@@ -13,8 +13,7 @@ export default function DocsPage() {
                 documentation
               </h1>
               <p className="text-[15px] text-[var(--text-secondary)] max-w-md">
-                Everything you need to know about Glyph — from creating your first
-                QR code to using the API programmatically.
+                Everything you need to know about Glyph — a completely free QR code generator that stores your codes locally on your device.
               </p>
             </div>
 
@@ -30,103 +29,55 @@ export default function DocsPage() {
                 </h3>
                 <ol className="flex flex-col gap-3 text-[13px] text-[var(--text-secondary)] list-decimal list-inside">
                   <li>Paste any URL into the generator on the homepage.</li>
-                  <li>
-                    Choose <strong>static</strong> (permanent, no tracking) or{" "}
-                    <strong>dynamic</strong> (trackable, editable URL).
-                  </li>
+                  <li>Customize colors and add a logo overlay (optional).</li>
                   <li>Click generate. Download as PNG.</li>
-                  <li>
-                    That&apos;s it. No signup required for static codes.
-                  </li>
+                  <li>Save to your dashboard by clicking "save to dashboard".</li>
                 </ol>
+                <p className="text-[12px] text-[var(--text-tertiary)] mt-2">
+                  No signup required. Everything is stored locally on your device.
+                </p>
               </div>
 
               <div className="module p-6 flex flex-col gap-4">
                 <h3 className="text-[16px] font-medium lowercase">
-                  static vs dynamic codes
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="module-recessed p-4 flex flex-col gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="led" />
-                      <span className="text-[13px] font-medium lowercase">
-                        static
-                      </span>
-                    </div>
-                    <ul className="flex flex-col gap-1 text-[12px] text-[var(--text-secondary)]">
-                      <li>Points directly to your URL</li>
-                      <li>No tracking or analytics</li>
-                      <li>Cannot change URL after creation</li>
-                      <li>Free, unlimited</li>
-                    </ul>
-                  </div>
-                  <div className="module-recessed p-4 flex flex-col gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="led led-active" />
-                      <span className="text-[13px] font-medium lowercase">
-                        dynamic
-                      </span>
-                    </div>
-                    <ul className="flex flex-col gap-1 text-[12px] text-[var(--text-secondary)]">
-                      <li>Routes through glyph.calyvent.com/g/code</li>
-                      <li>Full scan analytics (location, device, time)</li>
-                      <li>Change destination URL anytime</li>
-                      <li>Free: 3 codes. Pro: unlimited</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-
-              <div className="module p-6 flex flex-col gap-4">
-                <h3 className="text-[16px] font-medium lowercase">
-                  edit a destination url
+                  how it works
                 </h3>
                 <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
-                  Dynamic QR codes can point to a different URL without
-                  reprinting. Go to{" "}
-                  <strong>Dashboard &rarr; Edit</strong> on any dynamic code,
-                  change the destination URL, and save. The QR code image stays
-                  the same — only where it redirects changes. All scan history
-                  carries over.
+                  Glyph generates static QR codes that point directly to your destination URL. There is no server-side routing or tracking. All your QR codes are saved in your browser's local storage, meaning they never leave your device unless you choose to download or share them.
                 </p>
               </div>
             </div>
 
-            {/* Scan Analytics */}
+            {/* Dashboard */}
             <div className="flex flex-col gap-6">
               <h2 className="text-[11px] font-medium text-[var(--text-tertiary)] uppercase tracking-[0.15em]">
-                Scan analytics
+                Dashboard
               </h2>
 
               <div className="module p-6 flex flex-col gap-4">
                 <h3 className="text-[16px] font-medium lowercase">
-                  what we track
+                  viewing your qr codes
                 </h3>
                 <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
-                  Every time someone scans a dynamic QR code, Glyph records:
+                  Access your dashboard to see all QR codes you've saved. Each code displays its destination URL, creation date, and scan count. You can download, edit, or delete codes directly from the dashboard.
                 </p>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {[
-                    "country & city",
-                    "device type",
-                    "browser",
-                    "operating system",
-                    "referrer",
-                    "timestamp",
-                  ].map((item) => (
-                    <div
-                      key={item}
-                      className="module-recessed p-3 text-[12px] text-[var(--text-secondary)] lowercase flex items-center gap-2"
-                    >
-                      <span className="led led-active" />
-                      {item}
-                    </div>
-                  ))}
-                </div>
-                <p className="text-[12px] text-[var(--text-tertiary)]">
-                  Analytics are available in the dashboard for each dynamic
-                  code. Pro subscribers see full history; free users can view
-                  analytics for their dynamic codes.
+              </div>
+
+              <div className="module p-6 flex flex-col gap-4">
+                <h3 className="text-[16px] font-medium lowercase">
+                  editing qr codes
+                </h3>
+                <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
+                  Click "edit" on any QR code in the dashboard to change its colors, add or remove a logo, or update the destination URL. Changes are saved immediately to your local storage.
+                </p>
+              </div>
+
+              <div className="module p-6 flex flex-col gap-4">
+                <h3 className="text-[16px] font-medium lowercase">
+                  data persistence
+                </h3>
+                <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
+                  All data is stored in your browser's local storage. Clearing your browser's data will delete all your saved QR codes. We recommend downloading important QR codes as PNG backups to ensure you don't lose them.
                 </p>
               </div>
             </div>
@@ -134,211 +85,76 @@ export default function DocsPage() {
             {/* Customization */}
             <div className="flex flex-col gap-6">
               <h2 className="text-[11px] font-medium text-[var(--text-tertiary)] uppercase tracking-[0.15em]">
-                Customization (Pro)
+                Customization
               </h2>
 
               <div className="module p-6 flex flex-col gap-4">
                 <h3 className="text-[16px] font-medium lowercase">
-                  colors and logo
+                  colors
                 </h3>
                 <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
-                  Pro subscribers can customize QR codes with custom foreground
-                  and background colors, upload a logo overlay, or use one of
-                  our presets (classic, warm, accent, inverted, forest). Changes
-                  are saved and the QR code regenerates instantly.
+                  Customize the foreground and background colors of your QR code. Choose from our presets (classic, warm, accent, inverted, forest) or pick custom colors using the color picker.
                 </p>
               </div>
 
               <div className="module p-6 flex flex-col gap-4">
                 <h3 className="text-[16px] font-medium lowercase">
-                  bulk generation
+                  logo overlay
                 </h3>
                 <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
-                  Upload a CSV file with URLs to generate multiple QR codes at
-                  once. Each row becomes a QR code in your dashboard. Format:
-                  one URL per line, or two columns (URL, title).
+                  Upload a logo image to overlay in the center of your QR code. The logo will be displayed with a background box for readability. Supported formats: PNG, JPG, SVG.
                 </p>
               </div>
             </div>
 
-            {/* API Reference */}
+            {/* FAQ */}
             <div className="flex flex-col gap-6">
               <h2 className="text-[11px] font-medium text-[var(--text-tertiary)] uppercase tracking-[0.15em]">
-                API reference (Pro)
+                Frequently asked questions
               </h2>
 
               <div className="module p-6 flex flex-col gap-4">
                 <h3 className="text-[16px] font-medium lowercase">
-                  authentication
+                  is glyph really free?
                 </h3>
                 <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
-                  Generate an API key from{" "}
-                  <strong>Dashboard &rarr; API Keys</strong>. Include it in
-                  every request:
-                </p>
-                <div className="module-recessed p-4 overflow-x-auto">
-                  <pre className="font-mono text-[12px] text-[var(--text-secondary)] whitespace-pre">
-{`Authorization: Bearer YOUR_API_KEY`}
-                  </pre>
-                </div>
-              </div>
-
-              <div className="module p-6 flex flex-col gap-4">
-                <h3 className="text-[16px] font-medium lowercase">
-                  create a qr code
-                </h3>
-                <div className="module-recessed p-4 overflow-x-auto">
-                  <pre className="font-mono text-[12px] text-[var(--text-secondary)] whitespace-pre">
-{`POST https://glyph.calyvent.com/api/v1/qr
-Content-Type: application/json
-Authorization: Bearer YOUR_API_KEY
-
-{
-  "url": "https://example.com",
-  "title": "My Link",
-  "dynamic": true
-}`}
-                  </pre>
-                </div>
-
-                <h4 className="text-[13px] font-medium lowercase mt-2">
-                  response
-                </h4>
-                <div className="module-recessed p-4 overflow-x-auto">
-                  <pre className="font-mono text-[12px] text-[var(--text-secondary)] whitespace-pre">
-{`{
-  "id": "uuid",
-  "short_code": "abc1234",
-  "tracking_url": "https://glyph.calyvent.com/g/abc1234",
-  "destination_url": "https://example.com"
-}`}
-                  </pre>
-                </div>
-
-                <h4 className="text-[13px] font-medium lowercase mt-2">
-                  parameters
-                </h4>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-[12px]">
-                    <thead>
-                      <tr className="border-b border-[var(--border-subtle)]">
-                        <th className="text-left py-2 font-medium lowercase text-[var(--text-secondary)]">
-                          field
-                        </th>
-                        <th className="text-left py-2 font-medium lowercase text-[var(--text-secondary)]">
-                          type
-                        </th>
-                        <th className="text-left py-2 font-medium lowercase text-[var(--text-secondary)]">
-                          required
-                        </th>
-                        <th className="text-left py-2 font-medium lowercase text-[var(--text-secondary)]">
-                          description
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="text-[var(--text-secondary)]">
-                      <tr className="border-b border-[var(--border-subtle)]">
-                        <td className="py-2 font-mono">url</td>
-                        <td className="py-2">string</td>
-                        <td className="py-2">yes</td>
-                        <td className="py-2">destination URL</td>
-                      </tr>
-                      <tr className="border-b border-[var(--border-subtle)]">
-                        <td className="py-2 font-mono">title</td>
-                        <td className="py-2">string</td>
-                        <td className="py-2">no</td>
-                        <td className="py-2">label for the QR code</td>
-                      </tr>
-                      <tr>
-                        <td className="py-2 font-mono">dynamic</td>
-                        <td className="py-2">boolean</td>
-                        <td className="py-2">no</td>
-                        <td className="py-2">
-                          true for trackable codes (default: false)
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <div className="module p-6 flex flex-col gap-4">
-                <h3 className="text-[16px] font-medium lowercase">
-                  rate limits
-                </h3>
-                <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
-                  API requests are not rate-limited for Pro subscribers.
-                  Free-tier API access is not available — upgrade to Pro for
-                  programmatic access.
+                  Yes. Glyph is completely free with unlimited QR code generation. No signup, no payment, no limits.
                 </p>
               </div>
-            </div>
-
-            {/* Pricing & Payments */}
-            <div className="flex flex-col gap-6">
-              <h2 className="text-[11px] font-medium text-[var(--text-tertiary)] uppercase tracking-[0.15em]">
-                Pricing & payments
-              </h2>
 
               <div className="module p-6 flex flex-col gap-4">
                 <h3 className="text-[16px] font-medium lowercase">
-                  free tier
-                </h3>
-                <ul className="flex flex-col gap-2 text-[13px] text-[var(--text-secondary)]">
-                  <li className="flex items-center gap-2">
-                    <span className="led led-active" />5 QR code generations per day
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="led led-active" />unlimited static codes
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="led led-active" />Camera scanner
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="led led-active" />PNG download
-                  </li>
-                </ul>
-              </div>
-
-              <div className="module p-6 flex flex-col gap-4">
-                <h3 className="text-[16px] font-medium lowercase">
-                  pro — $3/month
-                </h3>
-                <ul className="flex flex-col gap-2 text-[13px] text-[var(--text-secondary)]">
-                  <li className="flex items-center gap-2">
-                    <span className="led led-active" />Unlimited generations and dynamic codes
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="led led-active" />Full scan analytics
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="led led-active" />Custom colors and logo
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="led led-active" />Edit destination URL anytime
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="led led-active" />Bulk CSV generation
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="led led-active" />API access
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="led led-active" />No ads or cross-promotions
-                  </li>
-                </ul>
-              </div>
-
-              <div className="module p-6 flex flex-col gap-4">
-                <h3 className="text-[16px] font-medium lowercase">
-                  payment methods
+                  where are my qr codes stored?
                 </h3>
                 <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
-                  We accept Stripe (credit/debit cards, Apple Pay, Google Pay),
-                  CashApp, Bitcoin, Ethereum, and Solana. For crypto payments,
-                  send $3 equivalent to the addresses on our pricing page and
-                  email hello@calyvent.com with your transaction ID to activate
-                  Pro.
+                  Your QR codes are stored in your browser's local storage. They never leave your device unless you download or share them. This means you have full control over your data.
+                </p>
+              </div>
+
+              <div className="module p-6 flex flex-col gap-4">
+                <h3 className="text-[16px] font-medium lowercase">
+                  can i access my qr codes on other devices?
+                </h3>
+                <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
+                  No. Since data is stored locally, your QR codes are only accessible on the device and browser where you created them. To use QR codes on multiple devices, download them as PNG images.
+                </p>
+              </div>
+
+              <div className="module p-6 flex flex-col gap-4">
+                <h3 className="text-[16px] font-medium lowercase">
+                  does glyph track scans?
+                </h3>
+                <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
+                  No. Glyph generates static QR codes that point directly to your destination URL. There is no server-side routing or tracking. The scan count shown in the dashboard is simulated for demonstration purposes.
+                </p>
+              </div>
+
+              <div className="module p-6 flex flex-col gap-4">
+                <h3 className="text-[16px] font-medium lowercase">
+                  what happens if i clear my browser data?
+                </h3>
+                <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
+                  Clearing your browser's local storage will delete all your saved QR codes. We recommend downloading important QR codes as PNG backups before clearing browser data.
                 </p>
               </div>
             </div>

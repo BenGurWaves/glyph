@@ -15,7 +15,7 @@ export default function TermsPage() {
           <div className="flex flex-col gap-8">
             <div>
               <h1 className="text-[28px] font-medium lowercase tracking-tight">terms & conditions</h1>
-              <p className="text-[13px] text-[var(--text-tertiary)] mt-2">effective date: march 25, 2026 &middot; last updated: march 25, 2026</p>
+              <p className="text-[13px] text-[var(--text-tertiary)] mt-2">effective date: may 16, 2026 &middot; last updated: may 16, 2026</p>
             </div>
 
             <div className="flex flex-col gap-6 text-[14px] text-[var(--text-secondary)] leading-relaxed">
@@ -26,22 +26,22 @@ export default function TermsPage() {
 
               <section>
                 <h2 className="text-[13px] font-medium text-[var(--text-primary)] uppercase tracking-[0.1em] mb-3">2. description of service</h2>
-                <p>Glyph is a QR code platform that allows users to generate, scan, and track QR codes. The Service offers a free tier with limited features and a paid subscription (&ldquo;Pro&rdquo;) with additional capabilities including unlimited generation, scan analytics, custom styling, bulk generation, and API access.</p>
+                <p>Glyph is a completely free QR code platform that allows users to generate unlimited QR codes. All data is stored locally on your device using browser local storage. No account registration, payment, or personal information is required.</p>
               </section>
 
               <section>
-                <h2 className="text-[13px] font-medium text-[var(--text-primary)] uppercase tracking-[0.1em] mb-3">3. accounts</h2>
-                <p>You may use certain features of the Service without creating an account. To access Pro features, save QR codes, or view analytics, you must create an account with a valid email address and password. You are responsible for maintaining the confidentiality of your credentials and for all activities under your account.</p>
+                <h2 className="text-[13px] font-medium text-[var(--text-primary)] uppercase tracking-[0.1em] mb-3">3. no account required</h2>
+                <p>Glyph does not require account creation. All features are available without registration. Since no account is needed, there are no credentials to manage or account deletion processes.</p>
               </section>
 
               <section>
-                <h2 className="text-[13px] font-medium text-[var(--text-primary)] uppercase tracking-[0.1em] mb-3">4. free tier</h2>
-                <p>The free tier allows up to 5 QR code generations per day, access to the camera scanner, and unlimited static QR codes. Free-tier usage does not require an account. Glyph reserves the right to modify free-tier limits at any time.</p>
+                <h2 className="text-[13px] font-medium text-[var(--text-primary)] uppercase tracking-[0.1em] mb-3">4. unlimited free use</h2>
+                <p>Glyph is completely free with unlimited QR code generation. There are no daily limits, no subscription tiers, and no premium features. All functionality is available to all users at no cost.</p>
               </section>
 
               <section>
-                <h2 className="text-[13px] font-medium text-[var(--text-primary)] uppercase tracking-[0.1em] mb-3">5. pro subscription</h2>
-                <p>The Pro subscription is billed monthly at $3.00 USD via Stripe. Alternative payment methods (CashApp, Bitcoin, Ethereum, Solana) are available. Subscriptions auto-renew monthly until cancelled. You may cancel at any time through your payment provider. No refunds are issued for partial billing periods.</p>
+                <h2 className="text-[13px] font-medium text-[var(--text-primary)] uppercase tracking-[0.1em] mb-3">5. local storage</h2>
+                <p>QR codes you create are stored in your browser's local storage. This data never leaves your device unless you choose to download or share it. We are not responsible for data loss due to browser clearing, device loss, or other local factors. We recommend backing up important QR codes by downloading them as PNG images.</p>
               </section>
 
               <section>
@@ -62,25 +62,23 @@ export default function TermsPage() {
                   <li>Generate QR codes linking to illegal, harmful, or malicious content</li>
                   <li>Distribute malware, phishing links, or deceptive content via QR codes</li>
                   <li>Attempt to gain unauthorized access to the Service or its systems</li>
-                  <li>Abuse the API or circumvent rate limits</li>
-                  <li>Resell or redistribute the Service without authorization</li>
+                  <li>Reverse engineer or copy the Service's code or design</li>
                 </ul>
-                <p className="mt-2">Calyvent reserves the right to suspend or terminate accounts that violate these terms without notice.</p>
               </section>
 
               <section>
-                <h2 className="text-[13px] font-medium text-[var(--text-primary)] uppercase tracking-[0.1em] mb-3">9. data and analytics</h2>
-                <p>Dynamic QR codes route through Glyph&rsquo;s servers to enable scan tracking. Scan data collected includes approximate location (country/city), device type, browser, operating system, and timestamp. This data is associated with your QR code and accessible through your dashboard. See our Privacy Policy for details.</p>
+                <h2 className="text-[13px] font-medium text-[var(--text-primary)] uppercase tracking-[0.1em] mb-3">9. static qr codes only</h2>
+                <p>All QR codes generated by Glyph are static and point directly to your destination URLs. There is no server-side routing or scan tracking. Analytics displayed in the dashboard are simulated for demonstration purposes only.</p>
               </section>
 
               <section>
                 <h2 className="text-[13px] font-medium text-[var(--text-primary)] uppercase tracking-[0.1em] mb-3">10. limitation of liability</h2>
-                <p>The Service is provided &ldquo;as is&rdquo; without warranties of any kind, express or implied. Calyvent shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of the Service. Our total liability shall not exceed the amount paid by you for the Service in the twelve months preceding the claim.</p>
+                <p>The Service is provided &ldquo;as is&rdquo; without warranties of any kind, express or implied. Calyvent shall not be liable for any damages arising from your use of the Service, including but not limited to data loss from clearing local storage. Since the Service is free, our total liability is limited to $0.</p>
               </section>
 
               <section>
                 <h2 className="text-[13px] font-medium text-[var(--text-primary)] uppercase tracking-[0.1em] mb-3">11. termination</h2>
-                <p>Calyvent may terminate or suspend your access to the Service at any time, with or without cause, with or without notice. Upon termination, your right to use the Service ceases immediately. Data associated with terminated accounts may be deleted after a reasonable retention period.</p>
+                <p>Since no account is required, there is no account to terminate. Calyvent may discontinue or modify the Service at any time with or without notice. You may stop using the Service at any time.</p>
               </section>
 
               <section>

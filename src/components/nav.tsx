@@ -8,10 +8,8 @@ export function Nav() {
 
   const links = [
     { href: "/", label: "create" },
-    { href: "/scan", label: "scan" },
-    { href: "/pricing", label: "pricing" },
     { href: "/dashboard", label: "dashboard" },
-    { href: "/dashboard/settings", label: "settings" },
+    { href: "/docs", label: "docs" },
   ];
 
   return (

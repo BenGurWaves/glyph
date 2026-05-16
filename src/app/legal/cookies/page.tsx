@@ -15,7 +15,7 @@ export default function CookiesPage() {
           <div className="flex flex-col gap-8">
             <div>
               <h1 className="text-[28px] font-medium lowercase tracking-tight">cookies policy</h1>
-              <p className="text-[13px] text-[var(--text-tertiary)] mt-2">effective date: march 25, 2026 &middot; last updated: march 25, 2026</p>
+              <p className="text-[13px] text-[var(--text-tertiary)] mt-2">effective date: may 16, 2026 &middot; last updated: may 16, 2026</p>
             </div>
 
             <div className="flex flex-col gap-6 text-[14px] text-[var(--text-secondary)] leading-relaxed">
@@ -38,11 +38,6 @@ export default function CookiesPage() {
                     </thead>
                     <tbody className="text-[var(--text-secondary)]">
                       <tr className="border-b border-[var(--border-subtle)]">
-                        <td className="py-2 font-mono text-[12px]">sb-*-auth-token</td>
-                        <td className="py-2">Authentication session (Supabase)</td>
-                        <td className="py-2">Essential</td>
-                      </tr>
-                      <tr className="border-b border-[var(--border-subtle)]">
                         <td className="py-2 font-mono text-[12px]">__cf_bm</td>
                         <td className="py-2">Bot management (Cloudflare)</td>
                         <td className="py-2">Essential</td>
@@ -51,27 +46,29 @@ export default function CookiesPage() {
                   </table>
                 </div>
 
-                <p className="mt-3">We use only <strong>essential cookies</strong> required for the Service to function. We do not use advertising cookies, tracking cookies, or third-party analytics cookies.</p>
+                <p className="mt-3">We use only <strong>essential cookies</strong> required for the Service to function. We do not use advertising cookies, tracking cookies, authentication cookies, or third-party analytics cookies.</p>
               </section>
 
               <section>
                 <h2 className="text-[13px] font-medium text-[var(--text-primary)] uppercase tracking-[0.1em] mb-3">3. local storage</h2>
                 <p>We use browser local storage (not cookies) to store:</p>
                 <ul className="list-disc pl-5 mt-2 flex flex-col gap-1">
-                  <li>Your daily QR generation count (resets every 24 hours)</li>
-                  <li>Authentication session tokens</li>
+                  <li>Your QR codes (destination URL, title, style configuration)</li>
+                  <li>QR code creation timestamps</li>
+                  <li>Scan analytics data (simulated locally)</li>
                 </ul>
-                <p className="mt-2">This data never leaves your browser and is not transmitted to our servers.</p>
+                <p className="mt-2">This data never leaves your browser and is not transmitted to our servers. It persists until you clear your browser's local storage.</p>
               </section>
 
               <section>
                 <h2 className="text-[13px] font-medium text-[var(--text-primary)] uppercase tracking-[0.1em] mb-3">4. third-party cookies</h2>
-                <p>Cloudflare may set essential cookies for security and performance purposes. Stripe may set cookies during the checkout process. These are governed by their respective cookie policies.</p>
+                <p>Cloudflare may set essential cookies for security and performance purposes. These are governed by their respective cookie policies.</p>
               </section>
 
               <section>
                 <h2 className="text-[13px] font-medium text-[var(--text-primary)] uppercase tracking-[0.1em] mb-3">5. managing cookies</h2>
-                <p>You can control cookies through your browser settings. Disabling essential cookies may prevent certain features of the Service from functioning properly, particularly authentication.</p>
+                <p>You can control cookies through your browser settings. Since we use only essential cookies for security, disabling them may prevent the Service from loading properly.</p>
+                <p className="mt-2">Local storage can be cleared through your browser settings, which will delete all your saved QR codes. We recommend downloading important QR codes as PNG backups before clearing local storage.</p>
               </section>
 
               <section>

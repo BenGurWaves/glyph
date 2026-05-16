@@ -3,51 +3,21 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { generateQRDataURL } from "@/lib/qr";
 import { generateQRWithLogo } from "@/lib/qr-with-logo";
-import { supabase } from "@/lib/supabase";
-import Link from "next/link";
-
-const DAILY_LIMIT = 5;
-const STORAGE_KEY = "glyph_daily_gen";
-const AUTO_SAVE_DELAY = 3000;
-
-function getDailyUsage(): { count: number; date: string } {
-  if (typeof window === "undefined") return { count: 0, date: "" };
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { count: 0, date: new Date().toDateString() };
-    const parsed = JSON.parse(raw);
-    if (parsed.date !== new Date().toDateString()) {
-      return { count: 0, date: new Date().toDateString() };
-    }
-    return parsed;
-  } catch {
-    return { count: 0, date: new Date().toDateString() };
-  }
-}
-
-function incrementUsage() {
-  const usage = getDailyUsage();
-  usage.count++;
-  usage.date = new Date().toDateString();
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(usage));
-}
+import { saveQRCode } from "@/lib/storage";
+import { useRouter } from "next/navigation";
 
 export function QRGenerator() {
+  const router = useRouter();
   const [url, setUrl] = useState("");
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [remaining, setRemaining] = useState(DAILY_LIMIT);
-  const [limitReached, setLimitReached] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isPro, setIsPro] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [autoSaveStatus, setAutoSaveStatus] = useState<string | null>(null);
 
-  // Pro features
+  // Color customization (free for everyone)
   const [fgColor, setFgColor] = useState("#1A1A1A");
   const [bgColor, setBgColor] = useState("#FFFFFF");
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
-  const [showProControls, setShowProControls] = useState(false);
+  const [showCustomize, setShowCustomize] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -60,155 +30,51 @@ export function QRGenerator() {
     reader.readAsDataURL(file);
   };
 
-  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastSavedUrl = useRef<string>("");
-  const userId = useRef<string | null>(null);
-
-  useEffect(() => {
-    const usage = getDailyUsage();
-    setRemaining(DAILY_LIMIT - usage.count);
-    setLimitReached(usage.count >= DAILY_LIMIT);
-
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      setIsLoggedIn(!!user);
-      if (user) {
-        userId.current = user.id;
-        const { data: sub } = await supabase
-          .from("subscriptions")
-          .select("plan, status")
-          .eq("user_id", user.id)
-          .in("status", ["active", "pending_cancellation"])
-          .maybeSingle();
-
-        if (sub && sub.plan === "pro") {
-          setIsPro(true);
-          setLimitReached(false);
-        } else {
-          const { data: couponData } = await supabase
-            .from("coupon_activations")
-            .select("email")
-            .eq("email", user.email?.toLowerCase() || "")
-            .maybeSingle();
-
-          if (couponData) {
-            await supabase.from("subscriptions").upsert(
-              { user_id: user.id, plan: "pro", payment_method: "coupon", status: "active" },
-              { onConflict: "user_id" }
-            );
-            setIsPro(true);
-            setLimitReached(false);
-          }
-        }
-      }
-    });
-  }, []);
-
-  // Auto-save for Pro users after 3 seconds of inactivity
-  const autoSave = useCallback(async (destUrl: string) => {
-    if (!userId.current || !isPro || !destUrl.trim()) return;
-    // Normalize URL
-    let normalizedUrl = destUrl.trim();
-    if (!/^https?:\/\//i.test(normalizedUrl)) {
-      normalizedUrl = "https://" + normalizedUrl;
-    }
-    if (normalizedUrl === lastSavedUrl.current) return;
-
-    const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-    let shortCode = "";
-    let collisionAttempts = 0;
-    while (collisionAttempts < 10) {
-      shortCode = "";
-      for (let i = 0; i < 7; i++) shortCode += chars[Math.floor(Math.random() * chars.length)];
-      const { data: existing } = await supabase.from("qr_codes").select("id").eq("short_code", shortCode).maybeSingle();
-      if (!existing) break;
-      collisionAttempts++;
-    }
-
-    let title = destUrl;
-    try { title = new URL(destUrl).hostname; } catch { /* use full url */ }
-
-    const { error } = await supabase.from("qr_codes").insert({
-      user_id: userId.current,
-      short_code: shortCode,
-      destination_url: normalizedUrl,
-      title,
-      qr_type: "dynamic",
-      style_config: { fgColor, bgColor, ...(logoDataUrl ? { logo: logoDataUrl } : {}) },
-    });
-
-    if (!error) {
-      lastSavedUrl.current = normalizedUrl;
-      setAutoSaveStatus("auto-saved to dashboard");
-      setSaved(true);
-      setTimeout(() => setAutoSaveStatus(null), 3000);
-    }
-  }, [isPro, fgColor, bgColor]);
-
   const generate = useCallback(async (text: string) => {
     if (!text.trim()) {
       setQrDataUrl(null);
       return;
     }
 
-    if (!isPro) {
-      const usage = getDailyUsage();
-      if (usage.count >= DAILY_LIMIT) {
-        setLimitReached(true);
-        return;
-      }
-    }
-
     setIsGenerating(true);
     setSaved(false);
-    setAutoSaveStatus(null);
     try {
       let dataUrl: string;
-      if (isPro && logoDataUrl) {
+      if (logoDataUrl) {
         dataUrl = await generateQRWithLogo(text, { width: 300, fgColor, bgColor, logoDataUrl });
       } else {
         dataUrl = await generateQRDataURL(text, {
           width: 300,
           margin: 2,
           color: { dark: fgColor, light: bgColor },
-          errorCorrectionLevel: isPro ? "H" : "M",
+          errorCorrectionLevel: "H",
         });
       }
       setQrDataUrl(dataUrl);
-      if (!isPro) {
-        incrementUsage();
-        setRemaining(DAILY_LIMIT - getDailyUsage().count);
-      }
-
-      // Start auto-save timer for Pro users
-      if (isPro && userId.current) {
-        if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
-        autoSaveTimer.current = setTimeout(() => autoSave(text), AUTO_SAVE_DELAY);
-      }
     } catch {
       setQrDataUrl(null);
     } finally {
       setIsGenerating(false);
     }
-  }, [isPro, fgColor, bgColor, logoDataUrl, autoSave]);
+  }, [fgColor, bgColor, logoDataUrl]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (url.trim() && !limitReached) generate(url);
-      else if (!url.trim()) {
+      if (url.trim()) generate(url);
+      else {
         setQrDataUrl(null);
         setSaved(false);
-        setAutoSaveStatus(null);
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [url, generate, limitReached]);
+  }, [url, generate]);
 
   useEffect(() => {
-    // Re-generate when colors or logo change (Pro only)
-    if (isPro && url.trim() && qrDataUrl) {
+    // Re-generate when colors or logo change
+    if (url.trim() && qrDataUrl) {
       generate(url);
     }
-  }, [fgColor, bgColor, logoDataUrl]);
+  }, [fgColor, bgColor, logoDataUrl, generate]);
 
   const download = () => {
     if (!qrDataUrl) return;
@@ -218,17 +84,35 @@ export function QRGenerator() {
     a.click();
   };
 
+  const handleSave = () => {
+    if (!url.trim() || !qrDataUrl) return;
+    
+    let normalizedUrl = url.trim();
+    if (!/^https?:\/\//i.test(normalizedUrl)) {
+      normalizedUrl = "https://" + normalizedUrl;
+    }
+
+    let title = normalizedUrl;
+    try { title = new URL(normalizedUrl).hostname; } catch { /* use full url */ }
+
+    saveQRCode({
+      shortCode: Math.random().toString(36).substring(2, 9),
+      destinationUrl: normalizedUrl,
+      title,
+      qrType: "static",
+      styleConfig: { fgColor, bgColor, ...(logoDataUrl ? { logo: logoDataUrl } : {}) },
+    });
+
+    setSaved(true);
+    setTimeout(() => router.push("/dashboard"), 500);
+  };
+
   return (
     <div className="module p-8 max-w-xl mx-auto w-full">
       <div className="flex flex-col gap-6">
         {/* URL Input */}
         <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <span className="label">destination url</span>
-            <span className="text-[10px] font-mono text-[var(--text-tertiary)]">
-              {isPro ? "pro — unlimited" : `${remaining}/${DAILY_LIMIT} today`}
-            </span>
-          </div>
+          <span className="label">destination url</span>
           <div className="flex gap-3">
             <input
               type="url"
@@ -236,12 +120,11 @@ export function QRGenerator() {
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://your-link.com"
               className="hw-input flex-1"
-              disabled={limitReached}
               autoFocus
             />
             <button
               onClick={() => generate(url)}
-              disabled={!url.trim() || isGenerating || limitReached}
+              disabled={!url.trim() || isGenerating}
               className="keycap keycap-accent keycap-md disabled:opacity-40 disabled:cursor-not-allowed"
             >
               generate
@@ -249,18 +132,18 @@ export function QRGenerator() {
           </div>
         </div>
 
-        {/* Pro Color Controls */}
-        {isPro && qrDataUrl && (
+        {/* Customize Colors */}
+        {qrDataUrl && (
           <div className="animate-in">
             <button
-              onClick={() => setShowProControls(!showProControls)}
+              onClick={() => setShowCustomize(!showCustomize)}
               className="text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] lowercase transition-colors flex items-center gap-2"
             >
               <span className="led led-active" />
-              {showProControls ? "hide pro controls" : "customize colors"}
+              {showCustomize ? "hide customization" : "customize colors"}
             </button>
 
-            {showProControls && (
+            {showCustomize && (
               <div className="mt-4 flex flex-col gap-4 module-recessed p-4 animate-in">
                 <div className="flex gap-6">
                   <div className="flex flex-col gap-1.5">
@@ -349,21 +232,6 @@ export function QRGenerator() {
           </div>
         )}
 
-        {/* Limit reached */}
-        {limitReached && (
-          <div className="module-recessed p-4 flex flex-col gap-2 animate-in">
-            <p className="text-[13px] text-[var(--text-primary)]">
-              Daily limit reached ({DAILY_LIMIT}/day on free).
-            </p>
-            <Link
-              href="/pricing"
-              className="keycap keycap-accent keycap-sm self-start no-underline"
-            >
-              go pro — unlimited
-            </Link>
-          </div>
-        )}
-
         {/* QR Preview */}
         <div className="flex justify-center">
           <div className="module-recessed p-6 flex items-center justify-center" style={{ minHeight: 200, minWidth: 200 }}>
@@ -394,14 +262,6 @@ export function QRGenerator() {
           </div>
         </div>
 
-        {/* Auto-save status */}
-        {autoSaveStatus && (
-          <div className="flex items-center justify-center gap-2 animate-in">
-            <span className="led led-active" />
-            <span className="text-[11px] text-[var(--text-secondary)] lowercase">{autoSaveStatus}</span>
-          </div>
-        )}
-
         {/* Actions */}
         {qrDataUrl && (
           <div className="flex justify-center gap-3 animate-in">
@@ -413,34 +273,15 @@ export function QRGenerator() {
               </svg>
               download
             </button>
-            {!isLoggedIn && (
-              <Link href="/login" className="keycap keycap-light keycap-md no-underline">
-                sign in to save
-              </Link>
-            )}
-          </div>
-        )}
-
-        {/* LinkDrop cross-promote */}
-        {qrDataUrl && (
-          <div className="flex justify-center animate-in">
-            <a
-              href="https://linkdrop.calyvent.com/dashboard/editor"
-              target="_blank"
-              className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] no-underline transition-colors lowercase mt-2 inline-block"
-            >
-              add this to your linkdrop page &rarr;
-            </a>
+            <button onClick={handleSave} className="keycap keycap-light keycap-md">
+              {saved ? "saved!" : "save to dashboard"}
+            </button>
           </div>
         )}
 
         {/* Note */}
         <p className="text-center text-[12px] text-[var(--text-tertiary)] lowercase tracking-wide">
-          {isPro
-            ? "pro — auto-saves to your dashboard."
-            : limitReached
-              ? "pro users get unlimited generations."
-              : "instant. no signup. no email."}
+          unlimited. free. saved to your device.
         </p>
       </div>
     </div>
