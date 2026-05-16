@@ -75,6 +75,26 @@ export function getQRCodeById(id: string): QRCode | undefined {
   return qrCodes.find((qr) => qr.id === id);
 }
 
+export function incrementScanCount(id: string): void {
+  const qrCodes = getQRCodes();
+  const qrCode = qrCodes.find((qr) => qr.id === id);
+  if (qrCode) {
+    // Add a simulated scan
+    const newScan: Scan = {
+      id: crypto.randomUUID(),
+      scannedAt: new Date().toISOString(),
+      country: "US",
+      city: "San Francisco",
+      device: "mobile",
+      browser: "Chrome",
+      os: "iOS",
+      referrer: null,
+    };
+    qrCode.scans.push(newScan);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(qrCodes));
+  }
+}
+
 export function getQRCodeByShortCode(shortCode: string): QRCode | undefined {
   const qrCodes = getQRCodes();
   return qrCodes.find((qr) => qr.shortCode === shortCode);

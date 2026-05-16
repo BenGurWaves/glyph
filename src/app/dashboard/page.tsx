@@ -5,7 +5,7 @@ import { generateQRDataURL } from "@/lib/qr";
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
 import Link from "next/link";
-import { getQRCodes, deleteQRCode, type QRCode } from "@/lib/storage";
+import { getQRCodes, deleteQRCode, incrementScanCount, type QRCode } from "@/lib/storage";
 
 type StyleConfig = {
   fgColor?: string;
@@ -76,6 +76,11 @@ export default function DashboardPage() {
   const handleDelete = (id: string) => {
     deleteQRCode(id);
     setQrCodes((prev) => prev.filter((qr) => qr.id !== id));
+  };
+
+  const handleIncrementScan = (id: string) => {
+    incrementScanCount(id);
+    loadQrCodes();
   };
 
   const downloadQr = (qr: QRCode, qrImage: string) => {
@@ -201,6 +206,7 @@ export default function DashboardPage() {
                     onDownload={downloadQr}
                     onEdit={startEdit}
                     onDelete={handleDelete}
+                    onIncrementScan={handleIncrementScan}
                     onSaveEdit={saveEdit}
                     onLogoUpload={handleLogoUpload}
                     onSetEditFg={setEditFg}
@@ -235,6 +241,7 @@ function QRCodeItem({
   onDownload,
   onEdit,
   onDelete,
+  onIncrementScan,
   onSaveEdit,
   onLogoUpload,
   onSetEditFg,
@@ -257,6 +264,7 @@ function QRCodeItem({
   onDownload: (qr: QRCode, qrImage: string) => void;
   onEdit: (qr: QRCode) => void;
   onDelete: (id: string) => void;
+  onIncrementScan: (id: string) => void;
   onSaveEdit: (qr: QRCode) => Promise<void>;
   onLogoUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onSetEditFg: (val: string) => void;
@@ -308,6 +316,9 @@ function QRCodeItem({
             className="keycap keycap-dark keycap-sm"
           >
             {editingId === qr.id ? "close" : "edit"}
+          </button>
+          <button onClick={() => onIncrementScan(qr.id)} className="keycap keycap-light keycap-sm text-[11px]">
+            + scan
           </button>
           <button onClick={() => onDelete(qr.id)} className="text-[10px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors lowercase">delete</button>
         </div>
