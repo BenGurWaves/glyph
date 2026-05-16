@@ -112,6 +112,7 @@ export function QRGenerator() {
       setTimeout(() => setSaved(false), 2000);
     } catch (error) {
       console.error("Failed to save QR code:", error);
+      alert("Failed to save QR code. Please check console for details.");
     }
   };
 
