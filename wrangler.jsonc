@@ -6,9 +6,5 @@
   "main": ".open-next/worker.js",
   "assets": {
     "directory": ".open-next/assets"
-  },
-  "vars": {
-    "NEXT_PUBLIC_SUPABASE_URL": "https://ppihdyxsegcllrsscbnt.supabase.co",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBwaWhkeXhzZWdjbGxyc3NjYm50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NzQyMTcsImV4cCI6MjA5MDA1MDIxN30.OemEJGqC96iIQbNAwbWDdRreZpW6iHzt00U9PsD-wMY"
   }
 }

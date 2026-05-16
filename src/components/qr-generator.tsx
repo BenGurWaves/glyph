@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { generateQRDataURL } from "@/lib/qr";
 import { generateQRWithLogo } from "@/lib/qr-with-logo";
-import { saveQRCode, getTrackingUrl } from "@/lib/storage";
+import { saveQRCode } from "@/lib/storage";
 import { useRouter } from "next/navigation";
 
 export function QRGenerator() {
@@ -12,23 +12,6 @@ export function QRGenerator() {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [saved, setSaved] = useState(false);
-
-  // Color customization (free for everyone)
-  const [fgColor, setFgColor] = useState("#1A1A1A");
-  const [bgColor, setBgColor] = useState("#FFFFFF");
-  const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
-  const [showCustomize, setShowCustomize] = useState(false);
-  const logoInputRef = useRef<HTMLInputElement>(null);
-
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      setLogoDataUrl(ev.target?.result as string);
-    };
-    reader.readAsDataURL(file);
-  };
 
   const generate = useCallback(async (text: string) => {
     if (!text.trim()) {
@@ -39,24 +22,19 @@ export function QRGenerator() {
     setIsGenerating(true);
     setSaved(false);
     try {
-      let dataUrl: string;
-      if (logoDataUrl) {
-        dataUrl = await generateQRWithLogo(text, { width: 300, fgColor, bgColor, logoDataUrl });
-      } else {
-        dataUrl = await generateQRDataURL(text, {
-          width: 300,
-          margin: 2,
-          color: { dark: fgColor, light: bgColor },
-          errorCorrectionLevel: "H",
-        });
-      }
+      const dataUrl = await generateQRDataURL(text, {
+        width: 300,
+        margin: 2,
+        color: { dark: "#1A1A1A", light: "#FFFFFF" },
+        errorCorrectionLevel: "H",
+      });
       setQrDataUrl(dataUrl);
     } catch {
       setQrDataUrl(null);
     } finally {
       setIsGenerating(false);
     }
-  }, [fgColor, bgColor, logoDataUrl]);
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -68,13 +46,6 @@ export function QRGenerator() {
     }, 300);
     return () => clearTimeout(timer);
   }, [url, generate]);
-
-  useEffect(() => {
-    // Re-generate when colors or logo change
-    if (url.trim() && qrDataUrl) {
-      generate(url);
-    }
-  }, [fgColor, bgColor, logoDataUrl, generate]);
 
   const download = () => {
     if (!qrDataUrl) return;
@@ -96,34 +67,17 @@ export function QRGenerator() {
     try { title = new URL(normalizedUrl).hostname; } catch { /* use full url */ }
 
     try {
-      const qrCode = await saveQRCode({
+      saveQRCode({
         shortCode: Math.random().toString(36).substring(2, 9),
         destinationUrl: normalizedUrl,
         title: title,
-        qrType: "dynamic",
+        qrType: "static",
         styleConfig: {
-          fgColor,
-          bgColor,
-          logo: logoDataUrl || undefined,
+          fgColor: "#1A1A1A",
+          bgColor: "#FFFFFF",
         },
         qr_image: qrDataUrl,
       });
-      
-      // Regenerate QR with tracking URL
-      const trackingUrl = getTrackingUrl(qrCode.shortCode);
-      let dataUrl: string;
-      if (logoDataUrl) {
-        dataUrl = await generateQRWithLogo(trackingUrl, { width: 300, fgColor, bgColor, logoDataUrl });
-      } else {
-        dataUrl = await generateQRDataURL(trackingUrl, {
-          width: 300,
-          margin: 2,
-          color: { dark: fgColor, light: bgColor },
-          errorCorrectionLevel: "H",
-        });
-      }
-      setQrDataUrl(dataUrl);
-      
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (error) {
@@ -158,105 +112,6 @@ export function QRGenerator() {
         </div>
 
         {/* Customize Colors */}
-        {qrDataUrl && (
-          <div className="animate-in">
-            <button
-              onClick={() => setShowCustomize(!showCustomize)}
-              className="text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] lowercase transition-colors flex items-center gap-2"
-            >
-              <span className="led led-active" />
-              {showCustomize ? "hide customization" : "customize colors"}
-            </button>
-
-            {showCustomize && (
-              <div className="mt-4 flex flex-col gap-4 module-recessed p-4 animate-in">
-                <div className="flex gap-6">
-                  <div className="flex flex-col gap-1.5">
-                    <span className="label">code color</span>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="color"
-                        value={fgColor}
-                        onChange={(e) => setFgColor(e.target.value)}
-                        className="w-8 h-8 rounded cursor-pointer border border-[var(--border)]"
-                        style={{ padding: 0 }}
-                      />
-                      <span className="font-mono text-[11px] text-[var(--text-secondary)]">{fgColor}</span>
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <span className="label">background</span>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="color"
-                        value={bgColor}
-                        onChange={(e) => setBgColor(e.target.value)}
-                        className="w-8 h-8 rounded cursor-pointer border border-[var(--border)]"
-                        style={{ padding: 0 }}
-                      />
-                      <span className="font-mono text-[11px] text-[var(--text-secondary)]">{bgColor}</span>
-                    </div>
-                  </div>
-                </div>
-                {/* Logo upload */}
-                <div className="flex flex-col gap-1.5">
-                  <span className="label">logo overlay</span>
-                  <div className="flex items-center gap-3">
-                    <input
-                      ref={logoInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleLogoUpload}
-                      className="hidden"
-                    />
-                    <button
-                      onClick={() => logoInputRef.current?.click()}
-                      className="keycap keycap-light keycap-sm"
-                    >
-                      {logoDataUrl ? "change logo" : "upload logo"}
-                    </button>
-                    {logoDataUrl && (
-                      <>
-                        <img src={logoDataUrl} alt="Logo" className="w-8 h-8 rounded object-cover border border-[var(--border)]" />
-                        <button
-                          onClick={() => setLogoDataUrl(null)}
-                          className="text-[10px] text-[var(--text-tertiary)] hover:text-[var(--accent)]"
-                        >
-                          remove
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Quick presets */}
-                <div className="flex gap-2">
-                  {[
-                    { fg: "#1A1A1A", bg: "#FFFFFF", name: "classic" },
-                    { fg: "#1A1A1A", bg: "#F5F0EB", name: "warm" },
-                    { fg: "#E8652B", bg: "#FFFFFF", name: "accent" },
-                    { fg: "#FFFFFF", bg: "#1A1A1A", name: "inverted" },
-                    { fg: "#023020", bg: "#F5F0EB", name: "forest" },
-                  ].map((preset) => (
-                    <button
-                      key={preset.name}
-                      onClick={() => { setFgColor(preset.fg); setBgColor(preset.bg); }}
-                      className="keycap keycap-light keycap-sm"
-                      title={preset.name}
-                    >
-                      <span
-                        className="w-3 h-3 rounded-sm mr-1.5 border border-[var(--border)]"
-                        style={{ background: preset.fg, display: "inline-block" }}
-                      />
-                      {preset.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* QR Preview */}
         <div className="flex justify-center">
           <div className="module-recessed p-6 flex items-center justify-center" style={{ minHeight: 200, minWidth: 200 }}>

@@ -1,5 +1,3 @@
-import { supabase } from '@/lib/supabase'
-
 export interface QRCode {
   id: string;
   shortCode: string;
@@ -27,108 +25,44 @@ export interface Scan {
   referrer: string | null;
 }
 
-export async function getQRCodes(): Promise<QRCode[]> {
-  const { data, error } = await supabase
-    .from('qr_codes')
-    .select('*')
-    .order('created_at', { ascending: false })
+const STORAGE_KEY = "glyph_qr_codes";
 
-  if (error) return []
-
-  return data.map((qr: any) => ({
-    id: qr.id,
-    shortCode: qr.short_code,
-    destinationUrl: qr.destination_url,
-    title: qr.title,
-    qrType: qr.qr_type,
-    styleConfig: qr.style_config,
-    createdAt: qr.created_at,
-    scans: [], // Will be loaded separately
-    qr_image: qr.qr_image,
-  }))
-}
-
-export async function getQRCodeScans(qrCodeId: string): Promise<Scan[]> {
-  const { data, error } = await supabase
-    .from('scans')
-    .select('*')
-    .eq('qr_code_id', qrCodeId)
-    .order('scanned_at', { ascending: false })
-
-  if (error) return []
-
-  return data.map((scan: any) => ({
-    id: scan.id,
-    scannedAt: scan.scanned_at,
-    country: scan.country,
-    city: scan.city,
-    device: scan.device,
-    browser: scan.browser,
-    os: scan.os,
-    referrer: scan.referrer,
-  }))
-}
-
-export async function saveQRCode(qrCode: Omit<QRCode, "id" | "createdAt" | "scans">): Promise<QRCode> {
-  const shortCode = Math.random().toString(36).substring(2, 10)
-
-  const { data, error } = await supabase
-    .from('qr_codes')
-    .insert({
-      short_code: shortCode,
-      destination_url: qrCode.destinationUrl,
-      title: qrCode.title,
-      qr_type: 'dynamic', // Always dynamic for analytics
-      style_config: qrCode.styleConfig,
-    })
-    .select()
-    .single()
-
-  if (error) throw error
-
-  return {
-    id: data.id,
-    shortCode: data.short_code,
-    destinationUrl: data.destination_url,
-    title: data.title,
-    qrType: data.qr_type,
-    styleConfig: data.style_config,
-    createdAt: data.created_at,
-    scans: [],
-    qr_image: qrCode.qr_image, // Store in memory only
+export function getQRCodes(): QRCode[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const data = localStorage.getItem(STORAGE_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch {
+    return [];
   }
 }
 
-export function getTrackingUrl(shortCode: string): string {
-  return `https://glyph.calyvent.com/g/${shortCode}`
+export function saveQRCode(qrCode: Omit<QRCode, "id" | "createdAt" | "scans">): QRCode {
+  const qrCodes = getQRCodes();
+  const newQRCode: QRCode = {
+    ...qrCode,
+    id: crypto.randomUUID(),
+    createdAt: new Date().toISOString(),
+    scans: [],
+  };
+  qrCodes.push(newQRCode);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(qrCodes));
+  return newQRCode;
 }
 
-export async function deleteQRCode(id: string): Promise<void> {
-  const { error } = await supabase.from('qr_codes').delete().eq('id', id)
-  if (error) throw error
-}
-
-export async function updateQRCode(id: string, updates: Partial<QRCode>): Promise<void> {
-  const updateData: any = {}
-  if (updates.styleConfig) updateData.style_config = updates.styleConfig
-  if (updates.destinationUrl) updateData.destination_url = updates.destinationUrl
-  if (updates.qr_image) updateData.qr_image = updates.qr_image
-
-  const { error } = await supabase
-    .from('qr_codes')
-    .update(updateData)
-    .eq('id', id)
-
-  if (error) throw error
+export function deleteQRCode(id: string): void {
+  const qrCodes = getQRCodes();
+  const filtered = qrCodes.filter((qr) => qr.id !== id);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
 }
 
 export function getQRCodeById(id: string): QRCode | undefined {
-  // This is now async, use getQRCodes() and filter
-  return undefined
+  const qrCodes = getQRCodes();
+  return qrCodes.find((qr) => qr.id === id);
 }
 
 export function getQRCodeByShortCode(shortCode: string): QRCode | undefined {
-  // This is now async, use getQRCodes() and filter
-  return undefined
+  const qrCodes = getQRCodes();
+  return qrCodes.find((qr) => qr.shortCode === shortCode);
 }
 
