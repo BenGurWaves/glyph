@@ -80,7 +80,6 @@ export async function saveQRCode(qrCode: Omit<QRCode, "id" | "createdAt" | "scan
       title: qrCode.title,
       qr_type: 'dynamic', // Always dynamic for analytics
       style_config: qrCode.styleConfig,
-      qr_image: qrCode.qr_image,
     })
     .select()
     .single()
@@ -96,7 +95,7 @@ export async function saveQRCode(qrCode: Omit<QRCode, "id" | "createdAt" | "scan
     styleConfig: data.style_config,
     createdAt: data.created_at,
     scans: [],
-    qr_image: data.qr_image,
+    qr_image: qrCode.qr_image, // Store in memory only
   }
 }
 
