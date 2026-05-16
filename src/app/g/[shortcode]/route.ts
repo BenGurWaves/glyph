@@ -38,9 +38,9 @@ async function getLocation(ip: string) {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { shortcode: string } }
+  { params }: { params: Promise<{ shortcode: string }> }
 ) {
-  const { shortcode } = params
+  const { shortcode } = await params
 
   // Get QR code from database
   const { data: qrCode, error } = await supabaseAdmin
